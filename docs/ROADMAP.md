@@ -4,7 +4,11 @@
 
 Baujahr und Erstzulassung, separate Halterdaten, allgemeine Fahrzeugfotos, private Dokumente, Schlüsselakten mit Historie, Schlüsselbestätigung im Protokoll und Passwort-Wiederherstellung. VIN-Modelljahr bleibt ein Hinweis. [Bedienung, Rechte und SMTP-Voraussetzungen](VEHICLE_RECORDS.md).
 
-## Als Nächstes: Bestand und Plattformen
+## Umgesetzt: Unternehmensprofil und gemeinsame Fahrzeugakte
+
+Logo und vollständige Firmenangaben mit Revision, Autohaus/Überführer/Kombiniert als Startprofil, Fahrzeuge ohne Pflichtkennzeichen mit VIN und Bestandsnummer, eigener Baureihe und ausdrücklicher Bestandszuordnung. Bestandsstatus mit Historie bleibt vom Transport getrennt. Eigenständige und auftragsbezogene Protokolle mit zwei Unterschriften, begründeter Ausnahme, versionierten Firmen-/Fahrzeugkopien, Galerie und neuem PDF. [Bedienung und Grenzen](COMPANY_PROTOCOLS.md).
+
+## Als Nächstes: Plattformen und Bestandsausbau
 
 1. **Bestandsübersicht – umgesetzt:** feste Standorte, Anschriften, Stellplätze und Bewegungen mit Person, Zeitpunkt und Anlass. Filter nach Standort, Stellplatz, Verfügbarkeit und Transportstatus. Freie Angaben bleiben erhalten und werden ausdrücklich zugeordnet. Weitere Schritte: feste Ziele in Aufträgen, Standortrechte und Archivierung. [Bedienung und Datenmodell](INVENTORY.md).
 2. **mobile.de – fest eingeplant:** Händlerbestand importieren, Inserate aus VehicleOps veröffentlichen und aktualisieren. Grundlage ist die offizielle [Seller-API](https://services.mobile.de/docs/seller-api.html). Händlerzugang, Freischaltung, Sandbox und benötigte Berechtigungen vor Umsetzung klären.
@@ -32,9 +36,9 @@ Live-Anbindungen, Inseratveröffentlichung und Offline-Sync gehören nicht zur F
 ## 2. Operativer Alltag
 - Abbruchablauf für bereits laufende Transporte ergänzen; Umplanung, Fahrerwechsel und Storno vor Übernahme sind umgesetzt.
 - Detaillierte Schadenfotos, Fahrzeugdiagramm und Zubehör-Checkliste; Schlüssel sind umgesetzt.
-- Separate Unterschriften für übergebende und übernehmende Person, Annahmeverweigerung.
+- Separate Unterschriften und begründete Ausnahme sind umgesetzt. Weiterführend: dokumentierte Annahmeverweigerung mit separatem Vorgangsstatus.
 - Status „Neu“ und „Fahrer unterwegs“, Benachrichtigungen, CSV-Import.
-- Versionierte PDF-Vorlage und persistente PDF-Artefakte.
+- Versionierte PDF-Vorlage ist umgesetzt; persistente PDF-Dateien und dokumentierte Aufbewahrung folgen.
 
 ## 3. Offline-Sync
 - Versionierte Entwürfe und Medienwarteschlange in IndexedDB.

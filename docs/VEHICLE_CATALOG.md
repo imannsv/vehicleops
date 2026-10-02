@@ -23,3 +23,11 @@ In Cloud-Konfiguration überprüft `/api/vin` die Anmeldung und Admin-/Dispositi
 `node scripts/update-vehicle-catalog.mjs` lädt öffentliche Hersteller-, Modell- und Merkmalsdaten und passende Logos als lokale WebP-Dateien. Es veröffentlicht den JSON-Snapshot erst nach erfolgreichem vollständigem Abruf. Die App selbst benötigt keinen Live-Zugriff auf mobile.de. Änderungen an Merkmalscodes müssen über eine neue Datenbankmigration mit der erlaubten Ausstattungsliste abgeglichen werden; bereits verwendete Codes nicht entfernen. Ein Katalog-Update ersetzt keine gespeicherten Fahrzeugangaben.
 
 Logos: [car-logos-dataset von filippofilip95](https://github.com/filippofilip95/car-logos-dataset), nach dessen Paketmetadaten MIT; Originalquellen je Marke im Snapshot unter `logoSource`. Logos dienen der Identifikation der jeweiligen Marke.
+
+## Baureihe / Generation
+
+Eigenes optionales Feld, getrennt von Modell und Ausführung. Ein kleiner gepflegter Katalog in `src/data/vehicle-generations.json` enthält zunächst die geprüften Audi-A3-Codes 8P, 8V und 8Y sowie gelieferte Untervarianten. Quellen und Abrufdatum 2. Oktober 2026 stehen im Snapshot. Die historischen Stichtage sind Beispiele für den Katalog, keine behaupteten vollständigen Produktionszeiträume.
+
+„Baureihen zur Erstzulassung laden“ fragt die öffentliche mobile.de-Referenzschnittstelle nach Hersteller, Modell und Erstzulassungsmonat ab, zum Beispiel [Audi A3, Mai 2013](https://services.mobile.de/refdata/sites/GERMANY/classes/Car/makes/AUDI/models/A3/modelranges?firstregistration=201305). Mehrere Treffer werden angezeigt und ausdrücklich ausgewählt; Whitespace und doppelte Codes werden bereinigt. Quellenabfrage mit Timeout, ohne Kennzeichen, VIN oder Halterdaten. Cloud-Zugriff ist auf Admin/Disposition des Arbeitsbereichs begrenzt. Bei fehlendem Datum, Freitextmodellen, Dienstausfall oder fehlenden Treffern bleibt freie Eingabe möglich. Die Fahrzeugdaten werden nie automatisch geändert. Keine vollständige historische Abdeckung, VIN-Baureihenerkennung oder Inseratanbindung wird behauptet.
+
+Zulassungskennzeichen dürfen inzwischen leer bleiben und werden als `null` gespeichert. Transportkennzeichen stehen separat im Auftrag bzw. Protokoll und verändern die Fahrzeugzulassung nicht.

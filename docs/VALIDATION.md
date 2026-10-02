@@ -1,5 +1,20 @@
 # Verifikation des ersten MVP
 
+## Unternehmensprofil und gemeinsame Fahrzeugakte – 2. Oktober 2026
+
+- Aktueller Stand: 51 Fachlogiktests und 40 Browserprüfungen bestanden, je 20 auf Desktop und Pixel 7. TypeScript, ESLint und Produktionsbuild bestehen.
+- Unternehmensprofil, normalisiertes Logo, Entfernen/Ersetzen, getrennte Teamansicht, Startbereich nach Unternehmensart und konkurrierende Profiländerungen sind geprüft. Echte lokale Cloud-Sitzungen prüfen außerdem Admin-/Zuschauerrechte und Ablehnung eines als PNG getarnten SVG.
+- Fahrzeuge ohne Kennzeichen, eindeutige VIN und Bestandsnummer, ausdrückliche Bestandszuordnung, unabhängige Baureihe sowie Vorschlagsauswahl und manuelle Eingabe bei Dienstausfall sind geprüft. Die kontrollierte Browserantwort prüft die Ausfallbehandlung, keine vollständige historische Katalogabdeckung.
+- Eigenständige Übernahme/Übergabe, Verkauf, Rücknahme und Vermietung, bestätigte Position und Bestandsstatus, zwei Unterschriften und begründete Ausnahme sind geprüft. Änderungen einschließlich Ausnahmebegründung verwerfen Entwurfsunterschriften; Entwürfe bleiben nach Neuladen verfügbar.
+- Die lokale Auth-/REST-/Storage-/RPC-Integration prüft alle Rollen, Mandantentrennung, Fahrerwechsel, laufende Transporte, Revisionen und Rollback unvollständiger Abschlüsse. Zwei gleichzeitige identische Abschlüsse ergeben genau ein Protokoll samt Schlüssel- und Bestandsbewegungen. Derselbe Abschluss mit verändertem Inhalt wird abgewiesen. Transportabschlüsse ändern den Verkaufsstatus nicht.
+- Alle zwölf Migrationen wurden in einer separaten Datenbank ausgeführt, einschließlich Altbeständen nach den ersten neun Migrationen. Bestehende Fahrzeug-IDs und alte Ein-Signatur-Protokolle bleiben erhalten; keine Eigentumszuordnung oder historischen Angaben werden erfunden. Die alte Abschluss-API, bestehende SQL-Suite, Fahrzeugakten- und Bestandsintegrationen bestehen weiter.
+- Allgemeine Bilder und Protokollfotos, Bildherkunft, bevorzugte Außenaufnahme, manuelles Titelbild und private verkleinerte Vorschauen sind geprüft. Signaturen und Dokumente werden als Titelbilder abgewiesen. Die Liste lädt bedarfsgerecht Vorschaubilder statt aller Originalfotos.
+- Der lokale Cloud-Browser prüft, dass ein abgeschlossenes Webprotokoll und PDF Firmenname, Steuerangabe und Logo nach späterer Profiländerung behalten. Das neue A4-PDF wurde zusätzlich visuell geprüft; alte Ein-Signatur-PDFs bleiben auf Desktop und Mobilgeräten exportierbar. Beispiele: [Webprotokoll](company-protocol-desktop.png), [mobile Fahrzeugakte](company-vehicle-mobile.png), [PDF mit synthetischen Testbildern](company-protocol-sample.pdf).
+- Die drei neuen Migrationen sind im ausgewählten Projekt `nfocyuyuloyjaikkflai` angewendet. Tabellenrechte, private Storage-Bereiche und Abschlussfunktionen sind bestätigt. Keine neuen Datenbank-Sicherheitsbefunde oder Performance-Warnungen; der zuvor dokumentierte Auth-Hinweis besteht weiterhin. Unbenutzte Indizes sind Informationen und kein Lasttestergebnis.
+- Schreibende Integrationstests verwenden ausschließlich den isolierten lokalen Stack. Temporäre Benutzer, Organisationsdaten und Dateien werden entfernt. Reale Kameras, Lastbetrieb, Offline-Sync und rechtliche Beweiskraft sind nicht Gegenstand dieser Prüfung.
+
+Bedienung und Datenmodell: [COMPANY_PROTOCOLS.md](COMPANY_PROTOCOLS.md).
+
 Geprüft am 1. Oktober 2026 lokal unter Windows, Node.js 24.15.0.
 
 | Prüfung | Ergebnis |

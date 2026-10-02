@@ -32,17 +32,23 @@ Die App enthält ein Manifest, PNG-Icons und einen Service Worker mit verständl
 
 - Dashboard mit offenen Aufträgen, Transportstatus und Aktivitäten.
 - Bestandsübersicht mit kombinierten Standort-, Stellplatz-, Verfügbarkeits- und Transportfiltern. Feste Standorte und Stellplätze verwalten, Fahrzeuge mit Begründung umsetzen und unveränderliche Bewegungen ansehen. Siehe [Bestandsverwaltung](docs/INVENTORY.md).
+- Unternehmensprofil mit Logo, Rechtsform, Geschäftsführung, Kontakt, Anschrift und Steuer-/Registerangaben. Getrennte Bereiche Unternehmen und Team; Startbereich nach Unternehmensart.
+- Gemeinsame Fahrzeugakte ohne Pflichtkennzeichen, mit automatischer Bestandsnummer, eindeutiger VIN, eigener Baureihe und getrenntem Bestands-/Transportstatus.
+- Eigenständige Protokolle für Ankauf, Verkauf, Vermietung und Rücknahme, bestätigte Position und Bestandsänderungen mit Historie.
+- Fahrzeuggalerie aus allgemeinen Fotos und abgeschlossenen Protokollen, kleine Vorschaubilder und auswählbares Titelbild.
 - Fahrzeuge mit VIN, Kilometerstand, Standort, Schadenakte und Historie anlegen, ansehen und bearbeiten.
 - Hersteller mit Logos und 2.664 zugehörige PKW-Modelle aus öffentlichen mobile.de-Referenzdaten auswählen, VIN-Vorschläge prüfen, Ausführung und Ausstattung erfassen. Siehe [Katalog und VIN](docs/VEHICLE_CATALOG.md).
 - Fahrer mit Kontaktinformationen und hinterlegtem Führerscheingültigkeitsdatum anlegen und bearbeiten.
 - Aufträge mit Fahrzeug, Fahrer, Route, Termin und Ansprechpartner erstellen, umplanen und vor der Übernahme mit Begründung stornieren.
 - Übernahme und Übergabe separat dokumentieren, Entwürfe lokal wiederherstellen.
-- Zehn Pflichtperspektiven aufnehmen, mehrere Innenraumfotos hochladen/aufnehmen, Schäden beschreiben und Unterschrift zeichnen.
+- Zehn Pflichtperspektiven aufnehmen, mehrere Innenraumfotos hochladen/aufnehmen, Schäden beschreiben und beide Beteiligten unterschreiben lassen; fehlende zweite Signatur benötigt eine bestätigte Begründung.
 - Abschluss erst bei vollständigem Protokoll, gültigen Werten und nicht sinkendem Kilometerstand.
-- Unveränderliche abgeschlossene Protokolle und PDF-Download mit Fotos und Unterschrift.
+- Unveränderliche abgeschlossene Protokolle und PDF-Download mit Firmenlogo, Fotos und zwei Unterschriften; ältere Versionen behalten ihren bisherigen Export.
 - Cloud-Modus mit Passwortanmeldung, Organisationsgründung, vier Rollen, RLS und privatem Storage.
 
 Eine Führerscheingültigkeit ist eine hinterlegte Stammdatenangabe, keine automatisierte Führerscheinkontrolle. Die Unterschrift ist eine gezeichnete Bestätigung, keine qualifizierte elektronische Signatur.
+
+Bedienung, Datenmodell und die Baureihenquellen: [Unternehmen und Protokolle](docs/COMPANY_PROTOCOLS.md).
 
 ## Supabase anbinden
 
@@ -61,7 +67,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 
 **Niemals einen Secret-/Service-Role-Key in NEXT_PUBLIC-Variablen eintragen.** Die App benötigt ausschließlich den Publishable Key. Alle Autorisierungsentscheidungen liegen in Postgres. Die browserseitige Anzeige der Rolle ist lediglich die Bedienoberfläche.
 
-Weitere Personen werden unter „Organisation“ mit einem Einladungslink aufgenommen. Für administrative Skripte bleibt außerdem die Funktion `add_member` verfügbar. Im SQL-Editor wird keine angemeldete App-Identität gesetzt; deshalb diese RPC mit dem angemeldeten Admin-Client aufrufen, z. B. in einem administrativen Setup-Skript:
+Weitere Personen werden unter „Organisation → Team“ mit einem Einladungslink aufgenommen. Für administrative Skripte bleibt außerdem die Funktion `add_member` verfügbar. Im SQL-Editor wird keine angemeldete App-Identität gesetzt; deshalb diese RPC mit dem angemeldeten Admin-Client aufrufen, z. B. in einem administrativen Setup-Skript:
 
 ```typescript
 await client.rpc('add_member', {

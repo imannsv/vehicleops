@@ -42,6 +42,22 @@ Supabase Authentication verwendet `https://vehicleops-six.vercel.app` als Site U
 Neue SQL-Migrationen gehören nach `supabase/migrations`. Git-Pushes wenden sie nicht automatisch auf Supabase an. Schemaänderungen getrennt prüfen und vor einem davon abhängigen App-Deployment anwenden. Angewendete Migrationen nicht nachträglich ändern.
 
 Bei einem fehlerhaften App-Deployment kann im Vercel-Dashboard ein vorheriger erfolgreicher Stand wieder zur Produktion werden. Danach die Ursache per Commit beheben. Datenbankmigrationen werden durch einen App-Rollback nicht zurückgenommen.
+
+## Unternehmensprofil und Protokolle – 2. Oktober 2026
+
+Nach lokaler Prüfung mit leerem Schema und Altbeständen sind drei weitere additive Migrationen im ausgewählten Projekt `nfocyuyuloyjaikkflai` angewendet:
+
+| Lokale Migration | Cloud-Version | Name |
+|---|---|---|
+| `20261002131221_company_vehicle_identity.sql` | `20261002142132` | `company_vehicle_identity` |
+| `20261002131827_structured_protocols.sql` | `20261002142140` | `structured_protocols` |
+| `20261002133356_vehicle_image_covers.sql` | `20261002142143` | `vehicle_image_covers` |
+
+Die Cloud-Verwaltung vergibt eigene Zeitstempel. Für diese bereits angewendeten Dateien keine zweite Migration über einen ungeprüften CLI-Push erzeugen. Der lokale isolierte Stack führt dieselben Inhalte unter den lokalen Dateiversionen. Insgesamt sind zwölf Migrationen angewendet.
+
+Alte Speicher- und Abschlussaufrufe bleiben kompatibel. Neue Protokolle verwenden die neue atomare Abschlussfunktion mit optionalem Auftrag und eingefrorenen Firmen-/Fahrzeugdaten. Alte Protokolle behalten ihren bisherigen PDF-Export. `company-logos` ist privat, Logoversionen werden nicht überschrieben; Bildvorschauen werden serverseitig auf Organisationszugriff geprüft. Es sind keine neuen Umgebungsvariablen erforderlich.
+
+GitHub Actions prüft nun 51 Fachlogiktests und 40 Desktop-/Mobilprüfungen. Schreibende Datenbank- und Cloud-Browserprüfungen werden zusätzlich gegen den lokalen Supabase-Stack ausgeführt; die öffentliche Smoke-Prüfung legt keine Geschäftsdaten an. Details: [VALIDATION.md](VALIDATION.md).
 # Fahrzeugakte und Recovery – 2. Oktober 2026
 
 Die Erweiterung verwendet zwei additive Migrationen: Fahrzeugakte/Anhänge/Schlüssel und einen ergänzenden Halter-Fremdschlüsselindex. Sie werden vor der App im gewählten Supabase-Projekt angewendet. Die alte Abschluss-API und frühere Fahrzeugbearbeitungsaufrufe bleiben kompatibel; neue App-Abschlüsse verwenden `finalize_handover_v2`. Halterdaten und Dokumente werden nicht in Protokollkopien übernommen.
