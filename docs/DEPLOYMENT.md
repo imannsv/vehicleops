@@ -47,3 +47,7 @@ Bei einem fehlerhaften App-Deployment kann im Vercel-Dashboard ein vorheriger er
 Die Erweiterung verwendet zwei additive Migrationen: Fahrzeugakte/Anhänge/Schlüssel und einen ergänzenden Halter-Fremdschlüsselindex. Sie werden vor der App im gewählten Supabase-Projekt angewendet. Die alte Abschluss-API und frühere Fahrzeugbearbeitungsaufrufe bleiben kompatibel; neue App-Abschlüsse verwenden `finalize_handover_v2`. Halterdaten und Dokumente werden nicht in Protokollkopien übernommen.
 
 Die App enthält `/auth/reset-password`; die bestehende Produktionsfreigabe `https://vehicleops-six.vercel.app/**` umfasst diesen Pfad. Ein eigener produktiver SMTP-Anbieter und die Absender-Domain stehen aus. Lokale Recovery- und Uploadprüfungen sind in [VALIDATION.md](VALIDATION.md), Einrichtung in [VEHICLE_RECORDS.md](VEHICLE_RECORDS.md) dokumentiert.
+
+## Bestandsverwaltung – 2. Oktober 2026
+
+Die additive neunte Migration `fleet_inventory` ist vor dem App-Deployment im ausgewählten Supabase-Projekt angewendet. Sie ergänzt Standorte, Stellplätze und unveränderliche Bewegungen, ohne bestehende Freitextstandorte zuzuordnen oder alte Protokolle umzuschreiben. Beide Abschluss-APIs geben den Stellplatz bei Übernahme atomar frei. GitHub Actions prüft 39 Fachlogiktests und 30 Desktop-/Mobilprüfungen. Bedienung: [INVENTORY.md](INVENTORY.md).

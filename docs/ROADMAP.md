@@ -6,7 +6,7 @@ Baujahr und Erstzulassung, separate Halterdaten, allgemeine Fahrzeugfotos, priva
 
 ## Als Nächstes: Bestand und Plattformen
 
-1. **Bestandsübersicht:** feste Standorte, Adressen und Stellplätze; Fahrzeugbewegungen mit Person, Zeitpunkt und Anlass. Filter nach Standort, Verfügbarkeit und Transportstatus. Freie bestehende Standortangaben erhalten und kontrolliert zuordnen.
+1. **Bestandsübersicht – umgesetzt:** feste Standorte, Anschriften, Stellplätze und Bewegungen mit Person, Zeitpunkt und Anlass. Filter nach Standort, Stellplatz, Verfügbarkeit und Transportstatus. Freie Angaben bleiben erhalten und werden ausdrücklich zugeordnet. Weitere Schritte: feste Ziele in Aufträgen, Standortrechte und Archivierung. [Bedienung und Datenmodell](INVENTORY.md).
 2. **mobile.de – fest eingeplant:** Händlerbestand importieren, Inserate aus VehicleOps veröffentlichen und aktualisieren. Grundlage ist die offizielle [Seller-API](https://services.mobile.de/docs/seller-api.html). Händlerzugang, Freischaltung, Sandbox und benötigte Berechtigungen vor Umsetzung klären.
 3. **AutoScout24:** als zusätzlichen Kanal evaluieren.
 4. **AUTO1/BCA:** Übernahme gekaufter Fahrzeuge einschließlich tatsächlich verfügbarer Daten und Bilder evaluieren. Einkaufsdatenzugriff, Bildnutzungsrechte und Partnerfreigaben zuerst prüfen; kein Zugang wird vorausgesetzt.
@@ -26,7 +26,7 @@ Live-Anbindungen, Inseratveröffentlichung und Offline-Sync gehören nicht zur F
 - Öffentliche HTTPS-Adresse und Auth-Redirects konfigurieren; das eigene Cloud-Projekt ist eingerichtet.
 - Mailanbieter für Auth-Bestätigungen konfigurieren und echten Mailversand prüfen.
 - Administratorkonto, echte Fahrzeug- und Fahrerdaten; kein Demoimport.
-- Mehrere Standorte ergänzen; Einladungslinks, Rollenänderungen und Organisationswechsel sind umgesetzt.
+- Feste Standorte und Stellplätze, Einladungslinks, Rollenänderungen und Organisationswechsel sind umgesetzt.
 - Entwürfe für gemeinsam verwendete Geräte sicher bereinigen; Aufbewahrungsfristen und Löschabläufe festlegen.
 
 ## 2. Operativer Alltag

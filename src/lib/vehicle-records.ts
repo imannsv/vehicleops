@@ -3,6 +3,7 @@ import { supabase } from './supabase';
 import { loadCloud, mutateDemo } from './repository';
 import { applyEntityUpdate, conflictMessage } from './management';
 import type { Json } from './database.types';
+import { recordMovement } from './inventory-domain';
 
 export const keyStateLabels = { available: 'Vorhanden', issued: 'Ausgegeben', lost: 'Verloren', retired: 'Ausgemustert' };
 export const keyActionLabels: Record<string,string> = { create: 'Erfasst', edit: 'Bearbeitet', issue: 'Ausgabe', return: 'Rückgabe', lost: 'Verlust', retire: 'Ausmusterung', pickup: 'Übernahme', delivery: 'Übergabe' };
@@ -24,6 +25,7 @@ export async function saveVehicleRecord(data:Data,vehicle:Vehicle,holder:Vehicle
   let next=latest;
   if(revision)next=applyEntityUpdate(latest,'vehicles',vehicle,revision);
   else {if(latest.vehicles.some(v=>v.id===vehicle.id||v.vin===vehicle.vin||v.plate===vehicle.plate))throw new Error('Kennzeichen oder VIN existiert bereits.');next={...latest,vehicles:[...latest.vehicles,{...vehicle,revision:1,keys_revision:1,keys_recorded:false}]};}
+  if(!revision)next=recordMovement(next,undefined,vehicle,'initial','Fahrzeug neu erfasst');
   return {...next,holders:[...(latest.holders??[]).filter(h=>h.vehicle_id!==vehicle.id),{...holder,revision:holder.revision+1}]};
  });
 }

@@ -7,7 +7,10 @@ export interface Organization { id: string; name: string }
 export interface Member { id: string; organization_id: string; user_id: string; name: string; role: Role }
 export interface Invitation { id: string; organization_id: string; email: string; name: string; role: Role; created_at: string; expires_at: string; accepted_at: string | null; revoked_at: string | null }
 export interface InvitePreview { organization_name: string; email: string; name: string; role: Role; expires_at: string }
-export interface Vehicle { id: string; organization_id: string; plate: string; vin: string; make: string; model: string; color: string; mileage: number; location: string; revision?: number; variant?: string; equipment?: string[]; equipment_notes?: string; build_year?: number | null; first_registration?: string | null; keys_recorded?: boolean; keys_revision?: number }
+export interface Vehicle { id: string; organization_id: string; plate: string; vin: string; make: string; model: string; color: string; mileage: number; location: string; revision?: number; variant?: string; equipment?: string[]; equipment_notes?: string; build_year?: number | null; first_registration?: string | null; keys_recorded?: boolean; keys_revision?: number; site_id?: string | null; parking_space_id?: string | null }
+export interface FleetSite { id: string; organization_id: string; name: string; address: string; revision: number }
+export interface ParkingSpace { id: string; organization_id: string; site_id: string; label: string; revision: number }
+export interface VehicleMovement { id: string; vehicle_id: string; organization_id: string; from_location: string; to_location: string; from_site_id?: string | null; to_site_id?: string | null; from_space_id?: string | null; to_space_id?: string | null; reason: string; source: 'initial'|'manual'|'legacy'|'pickup'|'delivery'; actor_name: string; created_at: string; handover_id?: string | null }
 export interface VehicleHolder { vehicle_id: string; organization_id: string; name: string; address: string; contact: string; revision: number }
 export interface VehicleAsset { id: string; vehicle_id: string; organization_id: string; kind: 'photo' | 'registration' | 'document'; name: string; path: string; mime: string; size: number; created_at: string; url?: string }
 export type KeyState = 'available' | 'issued' | 'lost' | 'retired';
@@ -22,7 +25,7 @@ export interface Damage { id: string; organization_id: string; vehicle_id: strin
 export interface ProtocolSnapshot { organization_name: string; vehicle: Vehicle; driver: Driver; order: Order }
 export interface Handover { id: string; organization_id: string; order_id: string; kind: Kind; mileage: number; fuel: number; signer: string; signature: string; notes: string; created_at: string; photos: Photo[]; snapshot?: ProtocolSnapshot; key_snapshot?: KeySnapshot | null }
 export interface Event { id: string; organization_id: string; vehicle_id: string; order_id: string | null; description: string; created_at: string }
-export interface Data { organization: Organization; members: Member[]; vehicles: Vehicle[]; drivers: Driver[]; orders: Order[]; handovers: Handover[]; damages: Damage[]; events: Event[]; invitations: Invitation[]; holders?: VehicleHolder[]; assets?: VehicleAsset[]; keys?: VehicleKey[]; key_movements?: KeyMovement[] }
+export interface Data { organization: Organization; members: Member[]; vehicles: Vehicle[]; drivers: Driver[]; orders: Order[]; handovers: Handover[]; damages: Damage[]; events: Event[]; invitations: Invitation[]; holders?: VehicleHolder[]; assets?: VehicleAsset[]; keys?: VehicleKey[]; key_movements?: KeyMovement[]; sites?: FleetSite[]; spaces?: ParkingSpace[]; movements?: VehicleMovement[] }
 export interface Draft { mileage: number; fuel: number; signer: string; signature: string; notes: string; photos: Photo[]; damages: { area: string; description: string }[]; keys?: KeyChecklist }
 export function isActiveOrder(order: Order) { return order.status === 'assigned' || order.status === 'in_transit'; }
 export function protocolSnapshot(data: Data, order: Order): ProtocolSnapshot {

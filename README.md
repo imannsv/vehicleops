@@ -31,6 +31,7 @@ Die App enthält ein Manifest, PNG-Icons und einen Service Worker mit verständl
 ## Was funktioniert
 
 - Dashboard mit offenen Aufträgen, Transportstatus und Aktivitäten.
+- Bestandsübersicht mit kombinierten Standort-, Stellplatz-, Verfügbarkeits- und Transportfiltern. Feste Standorte und Stellplätze verwalten, Fahrzeuge mit Begründung umsetzen und unveränderliche Bewegungen ansehen. Siehe [Bestandsverwaltung](docs/INVENTORY.md).
 - Fahrzeuge mit VIN, Kilometerstand, Standort, Schadenakte und Historie anlegen, ansehen und bearbeiten.
 - Hersteller mit Logos und 2.664 zugehörige PKW-Modelle aus öffentlichen mobile.de-Referenzdaten auswählen, VIN-Vorschläge prüfen, Ausführung und Ausstattung erfassen. Siehe [Katalog und VIN](docs/VEHICLE_CATALOG.md).
 - Fahrer mit Kontaktinformationen und hinterlegtem Führerscheingültigkeitsdatum anlegen und bearbeiten.
@@ -45,7 +46,7 @@ Eine Führerscheingültigkeit ist eine hinterlegte Stammdatenangabe, keine autom
 
 ## Supabase anbinden
 
-Das vom Nutzer ausgewählte neue Projekt nfocyuyuloyjaikkflai wurde mit sechs geprüften Migrationen eingerichtet. Die lokale App ist damit verbunden. Das andere bestehende Projekt wurde nicht verändert. Siehe docs/CLOUD_SETUP.md für Anmeldung und Teamaufnahme.
+Das vom Nutzer ausgewählte Projekt nfocyuyuloyjaikkflai verwendet die geprüften Migrationen unter `supabase/migrations`. Die lokale App ist damit verbunden. Siehe docs/CLOUD_SETUP.md für Anmeldung und Teamaufnahme.
 
 1. Ein eigenes Supabase-Projekt auswählen/erstellen.
 2. Die Migrationen unter supabase/migrations in Reihenfolge anwenden (SQL-Editor oder Supabase CLI).
@@ -86,7 +87,7 @@ Die dabei ausgegebenen lokalen API-Werte lassen sich in `.env.local` übernehmen
 
 ## Datenmodell und Grenzen
 
-`organizations`, `memberships`, `vehicles`, `drivers`, `orders`, `handovers`, `handover_photos`, `damages`, `vehicle_events`, `team_invitations`, `vehicle_holders`, `vehicle_assets`, `vehicle_keys`, `key_movements`.
+`organizations`, `memberships`, `vehicles`, `drivers`, `orders`, `handovers`, `handover_photos`, `damages`, `vehicle_events`, `team_invitations`, `vehicle_holders`, `vehicle_assets`, `vehicle_keys`, `key_movements`, `fleet_sites`, `parking_spaces`, `vehicle_movements`.
 
 Geschäftsdatensätze sind über `organization_id` getrennt. Zusammengesetzte Fremdschlüssel verhindern mandantenfremde Zuordnungen. Rollen werden aus Mitgliedschaften gelesen. RLS schützt alle öffentlichen Tabellen. Ein atomarer RPC sperrt Auftrag/Fahrzeug, prüft Zustand, zehn Pflichtperspektiven, zusätzliche Innenraumfotos und vorhandene Storage-Dateien und schreibt Protokoll, Schäden, Status und Historie zusammen. Direkte Statusänderungen und Änderungen abgeschlossener Protokolle sind für App-Benutzer gesperrt. Protokollbilder sind privat; die App lädt zeitlich begrenzte signierte URLs. Abgeschlossene Evidenzdateien dürfen App-Benutzer weder ersetzen noch löschen.
 
@@ -96,7 +97,7 @@ Geschäftsdatensätze sind über `organization_id` getrennt. Zusammengesetzte Fr
 npx supabase gen types --local --schema public > src/lib/database.types.ts
 ```
 
-Stammdatenbearbeitung und Umplanung/Stornierung sind umgesetzt. Mehrere Standorte, PDF-Archivierung und Abrechnung folgen. Cloud-Entwürfe werden derzeit auf dem jeweiligen Gerät gespeichert; sie synchronisieren nicht zwischen Geräten. Für Protokollabschlüsse ist im Cloud-Modus eine Verbindung erforderlich. Bei abgelaufenen signierten Foto-URLs die App neu laden. Einen produktiven Betrieb mit realen Kundendaten erst nach Pilotkonfiguration, Backups und Aufbewahrungs-/Löschkonzept beginnen.
+Stammdatenbearbeitung, Umplanung/Stornierung und mehrere feste Standorte sind umgesetzt. PDF-Archivierung und Abrechnung folgen. Cloud-Entwürfe werden derzeit auf dem jeweiligen Gerät gespeichert; sie synchronisieren nicht zwischen Geräten. Für Protokollabschlüsse ist im Cloud-Modus eine Verbindung erforderlich. Bei abgelaufenen signierten Foto-URLs die App neu laden. Einen produktiven Betrieb mit realen Kundendaten erst nach Pilotkonfiguration, Backups und Aufbewahrungs-/Löschkonzept beginnen.
 
 ## Prüfungen
 
@@ -109,6 +110,7 @@ npm run test:e2e
 node tests/cloud.integration.mjs
 node tests/team.integration.mjs
 node tests/records.integration.mjs
+node tests/inventory.integration.mjs
 Get-Content -Raw tests/database.sql | docker exec -i supabase_db_vehicleops psql -U postgres -d postgres -v ON_ERROR_STOP=1
 npx supabase db advisors --local --type all --level warn --fail-on error
 ```

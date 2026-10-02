@@ -42,7 +42,7 @@ try{
  assert.ok((await unconfirmed.c.rpc('accept_team_invitation',{p_token:uc.token})).error,'Unconfirmed email rejected');
  console.log('PASS: invite preview, verified identity, single use, revoked/expired links, admin authorization, last-admin guard, active-driver guard, stale role conflicts and access revocation');
 }finally{
- if(org){for(const table of ['team_invitations','vehicle_events','orders','drivers','vehicles','memberships'])ok(await admin.from(table).delete().eq('organization_id',org));ok(await admin.from('organizations').delete().eq('id',org));}
+ if(org){for(const table of ['vehicle_movements','team_invitations','vehicle_events','orders','drivers','vehicles','memberships'])ok(await admin.from(table).delete().eq('organization_id',org));ok(await admin.from('organizations').delete().eq('id',org));}
  for(const u of users)ok(await admin.auth.admin.deleteUser(u.id));
 }
 

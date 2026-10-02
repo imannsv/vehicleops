@@ -1,5 +1,6 @@
 import { Data, Driver, Event, Order, Vehicle, isActiveOrder, protocolSnapshot } from './domain';
 import { validateVehicleExtras } from './vehicle-catalog';
+import { recordMovement } from './inventory-domain';
 
 export type EntityTable = 'vehicles' | 'drivers' | 'orders';
 export const conflictMessage = 'Dieser Datensatz wurde inzwischen geändert. Bitte neu laden und die Änderung erneut prüfen.';
@@ -24,7 +25,8 @@ export function applyEntityUpdate(data: Data, table: EntityTable, row: Vehicle |
     const floor = Math.max(0, ...data.handovers.filter(h => (h.snapshot?.vehicle.id ?? data.orders.find(o => o.id === h.order_id)?.vehicle_id) === row.id).map(h => h.mileage));
     if (!Number.isSafeInteger(next.mileage) || next.mileage < floor) throw new Error(`Kilometerstand muss mindestens ${floor} km betragen.`);
     if (data.orders.some(o => o.vehicle_id === row.id && o.status === 'in_transit') && (next.mileage !== previous.mileage || next.location !== previous.location)) throw new Error('Während des Transports werden Kilometerstand und Standort durch das Protokoll aktualisiert.');
-    return { ...data, invitations: data.invitations ?? [], vehicles: data.vehicles.map(v => v.id === row.id ? { ...v,...next, revision } : v), events: [...data.events, event(data, row.id, null, `Fahrzeugdaten aktualisiert: ${previous.plate} → ${next.plate}`)] };
+    const updated={...previous,...next,revision,...(previous.location!==next.location?{site_id:null,parking_space_id:null}:{})};
+    return recordMovement({ ...data, invitations: data.invitations ?? [], vehicles: data.vehicles.map(v => v.id === row.id ? updated : v), events: [...data.events, event(data, row.id, null, `Fahrzeugdaten aktualisiert: ${previous.plate} → ${next.plate}`)] },previous,updated,'legacy','Standortangabe geändert');
   }
   if (table === 'drivers') {
     const next = row as Driver;

@@ -41,7 +41,7 @@ try{
  console.log('PASS: two isolated browser sessions, owner onboarding, invite acceptance, mobile driver scope, real photo uploads, driver protocol finalization and administrator PDF download');
 }finally{
  await browser.close();
- if(org){for(const table of ['team_invitations','handover_photos','damages','vehicle_events','handovers','orders','drivers','vehicles','memberships'])ok(await admin.from(table).delete().eq('organization_id',org));const folders=ok(await admin.storage.from('evidence').list(org));for(const order of folders){const handovers=ok(await admin.storage.from('evidence').list(org+'/'+order.name));for(const handover of handovers){const files=ok(await admin.storage.from('evidence').list(org+'/'+order.name+'/'+handover.name));if(files.length)ok(await admin.storage.from('evidence').remove(files.map(f=>org+'/'+order.name+'/'+handover.name+'/'+f.name)));}}ok(await admin.from('organizations').delete().eq('id',org));}
+ if(org){for(const table of ['vehicle_movements','team_invitations','handover_photos','damages','vehicle_events','handovers','orders','drivers','vehicles','memberships'])ok(await admin.from(table).delete().eq('organization_id',org));const folders=ok(await admin.storage.from('evidence').list(org));for(const order of folders){const handovers=ok(await admin.storage.from('evidence').list(org+'/'+order.name));for(const handover of handovers){const files=ok(await admin.storage.from('evidence').list(org+'/'+order.name+'/'+handover.name));if(files.length)ok(await admin.storage.from('evidence').remove(files.map(f=>org+'/'+order.name+'/'+handover.name+'/'+f.name)));}}ok(await admin.from('organizations').delete().eq('id',org));}
  for(const u of fixtures)ok(await admin.auth.admin.deleteUser(u.id));
 }
 

@@ -66,7 +66,7 @@ try {
  const anonymous=createClient(status.API_URL,status.PUBLISHABLE_KEY,{auth:{persistSession:false}}); assert.ok((await anonymous.from('vehicles').select('*')).error,'Anonymous access must be rejected');
  console.log('PASS: local Supabase login, organization, CRUD, 26 uploads, multiple interior photos, both protocol RPCs, immutable evidence, signed downloads, history and anonymous denial');
 } finally {
- if (org) { for (const table of ['handover_photos','damages','vehicle_events','handovers','orders','drivers','vehicles','memberships']) ok(await admin.from(table).delete().eq('organization_id',org)); if(paths.length) ok(await admin.storage.from('evidence').remove(paths)); ok(await admin.from('organizations').delete().eq('id',org)); }
+ if (org) { for (const table of ['vehicle_movements','handover_photos','damages','vehicle_events','handovers','orders','drivers','vehicles','memberships']) ok(await admin.from(table).delete().eq('organization_id',org)); if(paths.length) ok(await admin.storage.from('evidence').remove(paths)); ok(await admin.from('organizations').delete().eq('id',org)); }
  if(user) ok(await admin.auth.admin.deleteUser(user.id));
 }
 

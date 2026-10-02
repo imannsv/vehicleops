@@ -57,3 +57,9 @@ Die siebte Migration ergänzt optionale Fahrzeugdaten, private Halter/Anhänge u
 Der lokale Maildienst ist unter `http://127.0.0.1:55424` verfügbar, sofern `mailpit` beim Start nicht ausgeschlossen wird. Nach lokalem Cloud-Build und Start prüft `node tests/recovery.browser.mjs` reale Recovery-Mails, Passwortbestätigung, Wiederverwendung und Ablauf sowie mobile Uploadfehler/Wiederholung. Den Test nicht gegen die produktive API umstellen.
 
 Mailanbieter und Absender-Domain fehlen noch. Die benötigten Supabase-SMTP-Einstellungen, Domain-Verifizierung und produktiven Redirect-Adressen sind in [VEHICLE_RECORDS.md](VEHICLE_RECORDS.md) beschrieben. Die bestehende Redirect-Freigabe `https://vehicleops-six.vercel.app/**` umfasst den neuen Wiederherstellungsbildschirm. Einladungsabläufe bleiben erhalten.
+
+## Bestandsverwaltung
+
+Die neunte Migration `fleet_inventory` ergänzt feste Standorte, Stellplätze und Fahrzeugbewegungen. Bestehende Standorttexte bleiben unverändert; feste Zuordnungen beginnen leer. Die Übernahme gibt einen belegten Stellplatz innerhalb des bestehenden Abschlussvorgangs frei. Alte und aktuelle Abschlussaufrufe bleiben kompatibel. Fahrer und Zuschauer können den Bestand lesen; nur Admin/Disposition dürfen Standorte, Stellplätze und manuelle Bewegungen verwalten.
+
+Nach lokalem Cloud-Build und Start prüft `node tests/inventory.browser.mjs` Standortanlage, Stellplatzbelegung, freie Standortangaben, gespeicherte Bewegungen und die lesende Zuschaueroberfläche mit echten lokalen Sitzungen. `node tests/inventory.integration.mjs` prüft Rechte, Mandanten, konkurrierende Belegung und veraltete Revisionen. Alle Testdaten werden entfernt. Bedienung und Grenzen: [INVENTORY.md](INVENTORY.md).
