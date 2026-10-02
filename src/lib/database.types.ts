@@ -3,25 +3,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 
 export type Database = {
   
-  "graphql_public": {
-          Tables: {
-            [_ in never]: never
-          }
-          Views: {
-            [_ in never]: never
-          }
-          Functions: {
-            "graphql":
-{ Args: { "extensions"?: Json,"operationName"?: string,"query"?: string,"variables"?: Json }; Returns: Json
-                           }
-          }
-          Enums: {
-            [_ in never]: never
-          }
-          CompositeTypes: {
-            [_ in never]: never
-          }
-        },"public": {
+  "public": {
           Tables: {
             "damages": {
                   Row: {
@@ -106,13 +88,13 @@ isOneToOne: false
                   ]
                 },"handovers": {
                   Row: {
-                    "created_at": string,"created_by": string,"fuel": number,"id": string,"kind": string,"mileage": number,"notes": string,"order_id": string,"organization_id": string,"signature": string,"signer": string,"snapshot": NonNullable<Json>
+                    "created_at": string,"created_by": string,"fuel": number,"id": string,"key_snapshot": Json | null,"kind": string,"mileage": number,"notes": string,"order_id": string,"organization_id": string,"signature": string,"signer": string,"snapshot": NonNullable<Json>
                   }
                   Insert: {
-                    "created_at"?: string,"created_by": string,"fuel": number,"id": string,"kind": string,"mileage": number,"notes"?: string,"order_id": string,"organization_id": string,"signature": string,"signer": string,"snapshot": NonNullable<Json>
+                    "created_at"?: string,"created_by": string,"fuel": number,"id": string,"key_snapshot"?: Json | null,"kind": string,"mileage": number,"notes"?: string,"order_id": string,"organization_id": string,"signature": string,"signer": string,"snapshot": NonNullable<Json>
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string,"fuel"?: number,"id"?: string,"kind"?: string,"mileage"?: number,"notes"?: string,"order_id"?: string,"organization_id"?: string,"signature"?: string,"signer"?: string,"snapshot"?: NonNullable<Json>
+                    "created_at"?: string,"created_by"?: string,"fuel"?: number,"id"?: string,"key_snapshot"?: Json | null,"kind"?: string,"mileage"?: number,"notes"?: string,"order_id"?: string,"organization_id"?: string,"signature"?: string,"signer"?: string,"snapshot"?: NonNullable<Json>
                   }
                   Relationships: [
                     {
@@ -127,6 +109,37 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "orders"
       referencedColumns: ["organization_id","id"]
+    }
+                  ]
+                },"key_movements": {
+                  Row: {
+                    "action": string,"actor_name": string,"created_at": string,"handover_id": string | null,"id": string,"key_id": string,"key_label": string,"location": string,"organization_id": string,"person": string,"vehicle_id": string
+                  }
+                  Insert: {
+                    "action": string,"actor_name": string,"created_at"?: string,"handover_id"?: string | null,"id"?: string,"key_id": string,"key_label"?: string,"location"?: string,"organization_id": string,"person"?: string,"vehicle_id": string
+                  }
+                  Update: {
+                    "action"?: string,"actor_name"?: string,"created_at"?: string,"handover_id"?: string | null,"id"?: string,"key_id"?: string,"key_label"?: string,"location"?: string,"organization_id"?: string,"person"?: string,"vehicle_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "key_movements_handover_id_organization_id_fkey"
+      columns: ["handover_id","organization_id"]
+isOneToOne: false
+      referencedRelation: "handovers"
+      referencedColumns: ["id","organization_id"]
+    },{
+      foreignKeyName: "key_movements_key_id_organization_id_fkey"
+      columns: ["key_id","organization_id"]
+isOneToOne: false
+      referencedRelation: "vehicle_keys"
+      referencedColumns: ["id","organization_id"]
+    },{
+      foreignKeyName: "key_movements_vehicle_id_organization_id_fkey"
+      columns: ["vehicle_id","organization_id"]
+isOneToOne: false
+      referencedRelation: "vehicles"
+      referencedColumns: ["id","organization_id"]
     }
                   ]
                 },"memberships": {
@@ -211,6 +224,25 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"vehicle_assets": {
+                  Row: {
+                    "created_at": string,"id": string,"kind": string,"mime": string,"name": string,"organization_id": string,"path": string,"size": number,"vehicle_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"id": string,"kind": string,"mime": string,"name": string,"organization_id": string,"path": string,"size": number,"vehicle_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"kind"?: string,"mime"?: string,"name"?: string,"organization_id"?: string,"path"?: string,"size"?: number,"vehicle_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "vehicle_assets_vehicle_id_organization_id_fkey"
+      columns: ["vehicle_id","organization_id"]
+isOneToOne: false
+      referencedRelation: "vehicles"
+      referencedColumns: ["id","organization_id"]
+    }
+                  ]
                 },"vehicle_events": {
                   Row: {
                     "created_at": string,"description": string,"id": string,"order_id": string | null,"organization_id": string,"vehicle_id": string
@@ -242,15 +274,53 @@ isOneToOne: false
       referencedColumns: ["organization_id","id"]
     }
                   ]
-                },"vehicles": {
+                },"vehicle_holders": {
                   Row: {
-                    "color": string,"equipment": (string)[],"equipment_notes": string,"id": string,"location": string,"make": string,"mileage": number,"model": string,"organization_id": string,"plate": string,"revision": number,"variant": string,"vin": string
+                    "address": string,"contact": string,"name": string,"organization_id": string,"revision": number,"vehicle_id": string
                   }
                   Insert: {
-                    "color": string,"equipment"?: (string)[],"equipment_notes"?: string,"id"?: string,"location": string,"make": string,"mileage": number,"model": string,"organization_id": string,"plate": string,"revision"?: number,"variant"?: string,"vin": string
+                    "address"?: string,"contact"?: string,"name"?: string,"organization_id": string,"revision"?: number,"vehicle_id": string
                   }
                   Update: {
-                    "color"?: string,"equipment"?: (string)[],"equipment_notes"?: string,"id"?: string,"location"?: string,"make"?: string,"mileage"?: number,"model"?: string,"organization_id"?: string,"plate"?: string,"revision"?: number,"variant"?: string,"vin"?: string
+                    "address"?: string,"contact"?: string,"name"?: string,"organization_id"?: string,"revision"?: number,"vehicle_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "vehicle_holders_vehicle_id_organization_id_fkey"
+      columns: ["vehicle_id","organization_id"]
+isOneToOne: false
+      referencedRelation: "vehicles"
+      referencedColumns: ["id","organization_id"]
+    }
+                  ]
+                },"vehicle_keys": {
+                  Row: {
+                    "custodian": string,"id": string,"identifier": string,"label": string,"location": string,"organization_id": string,"state": string,"vehicle_id": string
+                  }
+                  Insert: {
+                    "custodian"?: string,"id": string,"identifier"?: string,"label": string,"location"?: string,"organization_id": string,"state"?: string,"vehicle_id": string
+                  }
+                  Update: {
+                    "custodian"?: string,"id"?: string,"identifier"?: string,"label"?: string,"location"?: string,"organization_id"?: string,"state"?: string,"vehicle_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "vehicle_keys_vehicle_id_organization_id_fkey"
+      columns: ["vehicle_id","organization_id"]
+isOneToOne: false
+      referencedRelation: "vehicles"
+      referencedColumns: ["id","organization_id"]
+    }
+                  ]
+                },"vehicles": {
+                  Row: {
+                    "build_year": number | null,"color": string,"equipment": (string)[],"equipment_notes": string,"first_registration": string | null,"id": string,"keys_recorded": boolean,"keys_revision": number,"location": string,"make": string,"mileage": number,"model": string,"organization_id": string,"plate": string,"revision": number,"variant": string,"vin": string
+                  }
+                  Insert: {
+                    "build_year"?: number | null,"color": string,"equipment"?: (string)[],"equipment_notes"?: string,"first_registration"?: string | null,"id"?: string,"keys_recorded"?: boolean,"keys_revision"?: number,"location": string,"make": string,"mileage": number,"model": string,"organization_id": string,"plate": string,"revision"?: number,"variant"?: string,"vin": string
+                  }
+                  Update: {
+                    "build_year"?: number | null,"color"?: string,"equipment"?: (string)[],"equipment_notes"?: string,"first_registration"?: string | null,"id"?: string,"keys_recorded"?: boolean,"keys_revision"?: number,"location"?: string,"make"?: string,"mileage"?: number,"model"?: string,"organization_id"?: string,"plate"?: string,"revision"?: number,"variant"?: string,"vin"?: string
                   }
                   Relationships: [
                     {
@@ -276,6 +346,9 @@ isOneToOne: false
 "cancel_order":
 { Args: { "p_expected_revision": number,"p_id": string,"p_reason": string }; Returns: undefined
                            },
+"change_vehicle_key":
+{ Args: { "p_action": string,"p_expected_revision": number,"p_key": string,"p_values": Json,"p_vehicle": string }; Returns: undefined
+                           },
 "create_organization":
 { Args: { "p_member_name": string,"p_name": string }; Returns: string
                            },
@@ -285,14 +358,29 @@ isOneToOne: false
 "finalize_handover":
 { Args: { "p_damages": Json,"p_expected_revision": number,"p_fuel": number,"p_id": string,"p_kind": string,"p_mileage": number,"p_notes": string,"p_order_id": string,"p_photos": Json,"p_signature": string,"p_signer": string }; Returns: string
                            },
+"finalize_handover_v2":
+{ Args: { "p_damages": Json,"p_expected_revision": number,"p_fuel": number,"p_id": string,"p_keys": Json,"p_kind": string,"p_mileage": number,"p_notes": string,"p_order_id": string,"p_photos": Json,"p_signature": string,"p_signer": string }; Returns: string
+                           },
 "manage_team_member":
 { Args: { "p_expected_role": string,"p_id": string,"p_remove": boolean,"p_role": string }; Returns: undefined
                            },
 "preview_team_invitation":
 { Args: { "p_token": string }; Returns: Json
                            },
+"register_vehicle_asset":
+{ Args: { "p_id": string,"p_kind": string,"p_name": string,"p_path": string,"p_vehicle": string }; Returns: undefined
+                           },
+"remove_vehicle_asset":
+{ Args: { "p_id": string }; Returns: string
+                           },
 "revoke_team_invitation":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"save_vehicle_holder":
+{ Args: { "p_expected_revision": number,"p_values": Json,"p_vehicle": string }; Returns: undefined
+                           },
+"save_vehicle_record":
+{ Args: { "p_holder": Json,"p_holder_revision": number,"p_id": string,"p_org": string,"p_revision": number,"p_values": Json }; Returns: undefined
                            },
 "update_driver":
 { Args: { "p_expected_revision": number,"p_id": string,"p_values": Json }; Returns: undefined
@@ -419,11 +507,7 @@ export type CompositeTypes<
   : never
 
 export const Constants = {
-  "graphql_public": {
-          Enums: {
-            
-          }
-        },"public": {
+  "public": {
           Enums: {
             
           }
