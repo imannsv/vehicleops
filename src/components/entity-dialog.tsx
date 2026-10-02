@@ -38,7 +38,7 @@ export function EntityDialog({ kind, initial, data, cloud, busy, error, onClose,
     {kind === 'order' && initial && <p className="muted small dialog-note">Nach einer Änderung beginnt ein neuer Protokollentwurf. Bereits abgeschlossene Protokolle bleiben erhalten.</p>}
     {kind === 'cancel' && <p className="muted dialog-note">{order?.reference} wird storniert. Das Fahrzeug steht danach wieder für neue Aufträge zur Verfügung. Der Auftrag bleibt mit Begründung in der Historie erhalten.</p>}
     <form onSubmit={onSubmit}><fieldset disabled={busy} className="inspection-fields"><div className="form-grid">
-      {kind === 'vehicle' && <VehicleFields vehicle={vehicle} inTransit={vehicleInTransit} organizationId={data.organization.id} />}
+      {kind === 'vehicle' && <VehicleFields vehicle={vehicle} inTransit={vehicleInTransit} organizationId={data.organization.id} holder={data.holders?.find(h=>h.vehicle_id===vehicle?.id)} />}
       {kind === 'driver' && <>
         <label className="span-2">Name<input name="name" required defaultValue={driver?.name} /></label><label>E-Mail<input name="email" type="email" required defaultValue={driver?.email} /></label>
         <label>Telefon<input name="phone" required defaultValue={driver?.phone} /></label><label className="span-2">Führerschein gültig bis<input name="license_valid_until" type="date" required defaultValue={driver?.license_valid_until} /></label>

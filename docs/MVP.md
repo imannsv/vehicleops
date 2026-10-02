@@ -25,4 +25,10 @@ Kühle weiße Arbeitsfläche, tiefblauer Navigationsbereich (#142c49), Kobaltbla
 
 Stammdaten lassen sich bearbeiten, offene Aufträge umplanen und vor Übernahme mit Begründung stornieren. Ein Storno bleibt sichtbar und gibt das Fahrzeug frei. Nach Übernahme bleiben Fahrzeug und Abholort fest. Führerscheindaten müssen alle offenen Aufträge abdecken. Abgeschlossene Protokolle speichern unveränderliche Kopien der Angaben für spätere PDF-Exporte. Revisionen und atomare Schreibvorgänge verhindern das Überschreiben neuerer Änderungen; Auftragsänderungen beginnen einen neuen lokalen Protokollentwurf.
 
-Teamverwaltung mit Einladungslinks, Rollenänderungen, Zugangsentzug und Organisationswechsel ist umgesetzt. Fahrer sehen ihre zugewiesenen Aufträge. Das vom Nutzer gewählte externe Cloud-Projekt ist eingerichtet. Öffentliche App-Adresse und Mailanbieter für Auth-Bestätigungen folgen.
+Teamverwaltung mit Einladungslinks, Rollenänderungen, Zugangsentzug und Organisationswechsel ist umgesetzt. Fahrer sehen ihre zugewiesenen Aufträge. Das gewählte externe Cloud-Projekt und die öffentliche App `https://vehicleops-six.vercel.app` sind eingerichtet. Ein eigener Mailanbieter für Auth-Bestätigungen bleibt offen.
+
+## Fahrzeugakte, Schlüssel und Wiederherstellung
+
+Optionale Angaben: Baujahr, Erstzulassung und separate Halterdaten. Allgemeine Fotos und Dokumente bis 10 MB haben eigenen privaten Storage mit rollenabhängigen Rechten. Schlüsselakten führen Zustand, Aufbewahrung und unveränderliche Bewegungshistorie; die Protokoll-Checkliste speichert Bestätigung, Bewegungen und Snapshot atomar. Alte PDFs bleiben unverändert, ältere App-Aufrufe kompatibel.
+
+Passwort vergessen und ein eigener Recovery-Bildschirm sind umgesetzt und gegen den lokalen Maildienst geprüft. Produktives SMTP wartet auf Anbieter und Absender-Domain. Details: [Fahrzeugakte](VEHICLE_RECORDS.md). Bestandsübersicht, mobile.de, weitere Kanäle und Offline-Sync stehen in der [Roadmap](ROADMAP.md).

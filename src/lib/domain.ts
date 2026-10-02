@@ -7,16 +7,23 @@ export interface Organization { id: string; name: string }
 export interface Member { id: string; organization_id: string; user_id: string; name: string; role: Role }
 export interface Invitation { id: string; organization_id: string; email: string; name: string; role: Role; created_at: string; expires_at: string; accepted_at: string | null; revoked_at: string | null }
 export interface InvitePreview { organization_name: string; email: string; name: string; role: Role; expires_at: string }
-export interface Vehicle { id: string; organization_id: string; plate: string; vin: string; make: string; model: string; color: string; mileage: number; location: string; revision?: number; variant?: string; equipment?: string[]; equipment_notes?: string }
+export interface Vehicle { id: string; organization_id: string; plate: string; vin: string; make: string; model: string; color: string; mileage: number; location: string; revision?: number; variant?: string; equipment?: string[]; equipment_notes?: string; build_year?: number | null; first_registration?: string | null; keys_recorded?: boolean; keys_revision?: number }
+export interface VehicleHolder { vehicle_id: string; organization_id: string; name: string; address: string; contact: string; revision: number }
+export interface VehicleAsset { id: string; vehicle_id: string; organization_id: string; kind: 'photo' | 'registration' | 'document'; name: string; path: string; mime: string; size: number; created_at: string; url?: string }
+export type KeyState = 'available' | 'issued' | 'lost' | 'retired';
+export interface VehicleKey { id: string; vehicle_id: string; organization_id: string; label: string; identifier: string; location: string; state: KeyState; custodian: string }
+export interface KeyMovement { id: string; vehicle_id: string; organization_id: string; key_id: string; key_label: string; action: string; person: string; location: string; created_at: string; handover_id?: string | null; actor_name: string }
+export interface KeyChecklist { confirmed: boolean; revision: number; selected: string[]; notes: string }
+export interface KeySnapshot { recorded: boolean; selected: { id: string; label: string; identifier: string }[]; expected_count: number; notes: string }
 export interface Driver { id: string; organization_id: string; name: string; email: string; phone: string; license_valid_until: string; user_id: string | null; revision?: number }
 export interface Order { id: string; organization_id: string; reference: string; vehicle_id: string; driver_id: string; pickup: string; destination: string; scheduled_at: string; contact: string; status: Status; revision?: number; cancellation_reason?: string | null; cancelled_at?: string | null }
 export interface Photo { slot: string; url: string; path?: string }
 export interface Damage { id: string; organization_id: string; vehicle_id: string; handover_id: string; area: string; description: string; created_at: string }
 export interface ProtocolSnapshot { organization_name: string; vehicle: Vehicle; driver: Driver; order: Order }
-export interface Handover { id: string; organization_id: string; order_id: string; kind: Kind; mileage: number; fuel: number; signer: string; signature: string; notes: string; created_at: string; photos: Photo[]; snapshot?: ProtocolSnapshot }
+export interface Handover { id: string; organization_id: string; order_id: string; kind: Kind; mileage: number; fuel: number; signer: string; signature: string; notes: string; created_at: string; photos: Photo[]; snapshot?: ProtocolSnapshot; key_snapshot?: KeySnapshot | null }
 export interface Event { id: string; organization_id: string; vehicle_id: string; order_id: string | null; description: string; created_at: string }
-export interface Data { organization: Organization; members: Member[]; vehicles: Vehicle[]; drivers: Driver[]; orders: Order[]; handovers: Handover[]; damages: Damage[]; events: Event[]; invitations: Invitation[] }
-export interface Draft { mileage: number; fuel: number; signer: string; signature: string; notes: string; photos: Photo[]; damages: { area: string; description: string }[] }
+export interface Data { organization: Organization; members: Member[]; vehicles: Vehicle[]; drivers: Driver[]; orders: Order[]; handovers: Handover[]; damages: Damage[]; events: Event[]; invitations: Invitation[]; holders?: VehicleHolder[]; assets?: VehicleAsset[]; keys?: VehicleKey[]; key_movements?: KeyMovement[] }
+export interface Draft { mileage: number; fuel: number; signer: string; signature: string; notes: string; photos: Photo[]; damages: { area: string; description: string }[]; keys?: KeyChecklist }
 export function isActiveOrder(order: Order) { return order.status === 'assigned' || order.status === 'in_transit'; }
 export function protocolSnapshot(data: Data, order: Order): ProtocolSnapshot {
   const vehicle = data.vehicles.find(v => v.id === order.vehicle_id)!;

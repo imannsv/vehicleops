@@ -1,4 +1,26 @@
-# Nächste Iterationen
+# VehicleOps – verbindliche Roadmap
+
+## Umgesetzt: Fahrzeugakte, Schlüssel und Teamzugang
+
+Baujahr und Erstzulassung, separate Halterdaten, allgemeine Fahrzeugfotos, private Dokumente, Schlüsselakten mit Historie, Schlüsselbestätigung im Protokoll und Passwort-Wiederherstellung. VIN-Modelljahr bleibt ein Hinweis. [Bedienung, Rechte und SMTP-Voraussetzungen](VEHICLE_RECORDS.md).
+
+## Als Nächstes: Bestand und Plattformen
+
+1. **Bestandsübersicht:** feste Standorte, Adressen und Stellplätze; Fahrzeugbewegungen mit Person, Zeitpunkt und Anlass. Filter nach Standort, Verfügbarkeit und Transportstatus. Freie bestehende Standortangaben erhalten und kontrolliert zuordnen.
+2. **mobile.de – fest eingeplant:** Händlerbestand importieren, Inserate aus VehicleOps veröffentlichen und aktualisieren. Grundlage ist die offizielle [Seller-API](https://services.mobile.de/docs/seller-api.html). Händlerzugang, Freischaltung, Sandbox und benötigte Berechtigungen vor Umsetzung klären.
+3. **AutoScout24:** als zusätzlichen Kanal evaluieren.
+4. **AUTO1/BCA:** Übernahme gekaufter Fahrzeuge einschließlich tatsächlich verfügbarer Daten und Bilder evaluieren. Einkaufsdatenzugriff, Bildnutzungsrechte und Partnerfreigaben zuerst prüfen; kein Zugang wird vorausgesetzt.
+
+| Geplanter Datensatz | Verantwortung |
+| --- | --- |
+| Fahrzeug | Interne ID, technische Daten, Bestand, Standort |
+| Einkaufsquelle | Anbieter, Kauf-/Auktionsreferenz, Datum, verfügbare Einkaufsdaten |
+| Externes Inserat | Organisation, internes Fahrzeug, Plattform, Händlerkonto, externe Inserat-ID, Kanalstatus |
+| Synchronisationslauf | Richtung, Vorschau, Änderungen, Fehler, Wiederholungsstatus |
+
+Plattform-IDs ersetzen keine internen Fahrzeug-IDs. Import mit Vorschau und Dublettenprüfung anhand VIN und Plattformreferenz; fehlende oder mehrdeutige Daten benötigen eine Auswahl. Veröffentlichung mit ausdrücklicher Freigabe, versionierten Datenständen, Fehlerstatus und wiederholbaren Jobs. Server verwahren Zugangsdaten. Halteranschriften und private Dokumente sind von Inserat-Exporten ausgeschlossen. Je Plattform eigener Adapter, gemeinsame Zuordnung und Fehlerbehandlung.
+
+Live-Anbindungen, Inseratveröffentlichung und Offline-Sync gehören nicht zur Fahrzeugakten-Iteration.
 
 ## 1. Pilotbetrieb in eigener Supabase-Instanz
 - Öffentliche HTTPS-Adresse und Auth-Redirects konfigurieren; das eigene Cloud-Projekt ist eingerichtet.
@@ -9,7 +31,7 @@
 
 ## 2. Operativer Alltag
 - Abbruchablauf für bereits laufende Transporte ergänzen; Umplanung, Fahrerwechsel und Storno vor Übernahme sind umgesetzt.
-- Detaillierte Schadenfotos, Fahrzeugdiagramm, Schlüssel/Zubehör-Checkliste.
+- Detaillierte Schadenfotos, Fahrzeugdiagramm und Zubehör-Checkliste; Schlüssel sind umgesetzt.
 - Separate Unterschriften für übergebende und übernehmende Person, Annahmeverweigerung.
 - Status „Neu“ und „Fahrer unterwegs“, Benachrichtigungen, CSV-Import.
 - Versionierte PDF-Vorlage und persistente PDF-Artefakte.

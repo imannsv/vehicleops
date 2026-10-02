@@ -13,6 +13,8 @@ export async function exportProtocol(data: Data, h: Handover) {
  line(`${order.reference} | ${new Date(h.created_at).toLocaleString('de-DE')}`);
  line(`${vehicle.plate} | ${vehicle.make} ${vehicle.model}`);
  line(`VIN: ${vehicle.vin} | Farbe: ${vehicle.color}`);
+ if(vehicle.build_year)line(`Baujahr: ${vehicle.build_year}`);
+ if(vehicle.first_registration)line(`Erstzulassung: ${vehicle.first_registration}`);
  if (vehicle.variant) line(`Ausführung: ${vehicle.variant}`);
  if (vehicle.equipment?.length || vehicle.equipment_notes) {
   line('Ausstattung bei Protokollerstellung', 15);
@@ -27,6 +29,9 @@ export async function exportProtocol(data: Data, h: Handover) {
  if (!damages.length) line('Keine neuen Schäden dokumentiert.');
  damages.forEach(d => line(`${d.area}: ${d.description}`));
  line(`Anmerkungen: ${h.notes || 'Keine'}`);
+ line('Schlüsselbestätigung',15);
+ if(!h.key_snapshot?.recorded)line('Schlüsselbestand nicht erfasst.');
+ else {line(`${h.key_snapshot.selected.length} von ${h.key_snapshot.expected_count} erfassten aktiven Schlüsseln übergeben.`);h.key_snapshot.selected.forEach(k=>line(`${k.label}${k.identifier?' · '+k.identifier:''}`));if(h.key_snapshot.notes)line(`Abweichung / Hinweise: ${h.key_snapshot.notes}`);}
  if (y > 210) { pdf.addPage(); y = 22; }
  line(`Unterzeichnet von: ${h.signer}`, 12);
  pdf.addImage(await imageData(h.signature), 'PNG', 20, y, 65, 24); y += 33;

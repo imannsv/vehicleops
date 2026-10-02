@@ -71,14 +71,14 @@ await client.rpc('add_member', {
 });
 ```
 
-Beim Anlegen eines Fahrers lässt sich dessen Teammitglied verknüpfen. Nur dann kann ein Mitglied mit Fahrerrolle die ihm zugewiesenen Aufträge dokumentieren. Einladungslinks, Rollenänderungen und Organisationswechsel sind umgesetzt. Alle Mitglieder können Daten ihres Mandanten lesen; Bearbeitungsrechte sind rollenabhängig.
+Beim Anlegen eines Fahrers lässt sich dessen Teammitglied verknüpfen. Nur dann kann ein Mitglied mit Fahrerrolle die ihm zugewiesenen Aufträge dokumentieren. Einladungslinks, Rollenänderungen und Organisationswechsel sind umgesetzt. Grunddaten und Fahrzeugfotos sind innerhalb des Mandanten lesbar; Halterdaten und Dokumente sehen nur Admin/Disposition und Fahrer mit aktuell zugewiesenem offenem Auftrag.
 
 ## Lokaler Supabase-Testbetrieb
 
 Docker muss laufen. Die Konfiguration nutzt eigene Ports 55421/55422, um andere Projekte nicht zu stören.
 
 ```powershell
-npx supabase start -x realtime,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+npx supabase start -x realtime,imgproxy,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
 npx supabase status
 ```
 
@@ -86,7 +86,7 @@ Die dabei ausgegebenen lokalen API-Werte lassen sich in `.env.local` übernehmen
 
 ## Datenmodell und Grenzen
 
-`organizations`, `memberships`, `vehicles`, `drivers`, `orders`, `handovers`, `handover_photos`, `damages`, `vehicle_events`.
+`organizations`, `memberships`, `vehicles`, `drivers`, `orders`, `handovers`, `handover_photos`, `damages`, `vehicle_events`, `team_invitations`, `vehicle_holders`, `vehicle_assets`, `vehicle_keys`, `key_movements`.
 
 Geschäftsdatensätze sind über `organization_id` getrennt. Zusammengesetzte Fremdschlüssel verhindern mandantenfremde Zuordnungen. Rollen werden aus Mitgliedschaften gelesen. RLS schützt alle öffentlichen Tabellen. Ein atomarer RPC sperrt Auftrag/Fahrzeug, prüft Zustand, zehn Pflichtperspektiven, zusätzliche Innenraumfotos und vorhandene Storage-Dateien und schreibt Protokoll, Schäden, Status und Historie zusammen. Direkte Statusänderungen und Änderungen abgeschlossener Protokolle sind für App-Benutzer gesperrt. Protokollbilder sind privat; die App lädt zeitlich begrenzte signierte URLs. Abgeschlossene Evidenzdateien dürfen App-Benutzer weder ersetzen noch löschen.
 
@@ -108,6 +108,7 @@ npm run build
 npm run test:e2e
 node tests/cloud.integration.mjs
 node tests/team.integration.mjs
+node tests/records.integration.mjs
 Get-Content -Raw tests/database.sql | docker exec -i supabase_db_vehicleops psql -U postgres -d postgres -v ON_ERROR_STOP=1
 npx supabase db advisors --local --type all --level warn --fail-on error
 ```
@@ -134,3 +135,11 @@ Die dritte Migration ersetzt die Abschluss-RPC-Signatur durch eine Variante mit 
 Unter Organisation lassen sich Einladungslinks erstellen und widerrufen, Rollen ändern und Zugänge entfernen. Annahme bindet die Mitgliedschaft an die bestätigte E-Mail-Adresse; Links gelten sieben Tage, werden einmalig verwendet und nur gehasht gespeichert. Adminrechte werden serverseitig geprüft. Der letzte Administrator und Fahrer mit offenen Aufträgen bleiben geschützt. Die Fahrer-Auftragsliste zeigt zugewiesene Aufträge. Einladungslinks werden selbst geteilt; automatischer Einladungsmailversand ist nicht eingebaut.
 
 Die Auth-E-Mail-Bestätigung benötigt für beliebige Mitarbeiter einen eigenen SMTP-Anbieter. Die Web-App wird bei Vercel über HTTPS veröffentlicht. Die bisherigen Demodaten bleiben lokal erhalten. Details in docs/CLOUD_SETUP.md.
+
+## Fahrzeugakte und Schlüssel
+
+Baujahr, optionale Erstzulassung und Halter lassen sich beim Hinzufügen/Bearbeiten erfassen. Mehrere allgemeine Fahrzeugfotos, Fahrzeugscheine und Dokumente bis 10 MB liegen in einem getrennten privaten Storage-Bereich. Die Fahrzeugakte bietet Vorschau, Download, Uploadfortschritt, Wiederholung und einzelnes Entfernen. Protokollfotos bleiben getrennt.
+
+Einzelne Schlüssel führen Bezeichnung, Kennung, Aufbewahrungsort, Zustand und unveränderliche Bewegungshistorie. Die Protokoll-Checkliste speichert Bestätigung und Bewegungen atomar; alte PDFs verwenden unveränderte Kopien. Nicht erfasster Bestand bleibt von ausdrücklich null Schlüsseln unterscheidbar.
+
+Passwort vergessen und `/auth/reset-password` sind vorbereitet und lokal mit echtem Test-Mailversand geprüft. Produktive SMTP-Einrichtung wartet auf Anbieter und Absender-Domain. Bedienung, Rechte, Tests und Einrichtung: [VEHICLE_RECORDS.md](docs/VEHICLE_RECORDS.md). mobile.de ist verbindlicher nächster Integrationskanal in der [Roadmap](docs/ROADMAP.md); Live-Anbindungen folgen nach der Bestandsübersicht.

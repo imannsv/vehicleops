@@ -4,6 +4,7 @@ import { seed } from './seed';
 import { Data, Draft, Handover, Kind, Order, Vehicle, Driver, ProtocolSnapshot, protocolSnapshot, validateHandover } from './domain';
 import { EntityTable, applyCancellation, applyEntityUpdate, conflictMessage, scheduledDay, upgradeDemo } from './management';
 import { validateVehicleExtras } from './vehicle-catalog';
+import { keyValidation, keySnapshot } from './vehicle-records';
 const db = () => openDB('vehicleops-demo-v1', 1, { upgrade(database) { database.createObjectStore('data'); database.createObjectStore('drafts'); } });
 export async function loadDemo(): Promise<Data> { const database = await db(); const transaction = database.transaction('data', 'readwrite'); const existing = await transaction.store.get('state'); const data = upgradeDemo(existing ?? seed()); await transaction.store.put(data, 'state'); await transaction.done; return data; }
 export async function mutateDemo(transform: (data: Data) => Data): Promise<Data> {
@@ -62,7 +63,9 @@ export async function loadCloud(orgId?: string): Promise<Data | null> {
  const signed = async (path: string) => checked(await supabase!.storage.from('evidence').createSignedUrl(path, 3600))!.signedUrl;
  const handovers = await Promise.all(rawHandovers.map(async h => ({ ...h, snapshot: h.snapshot as unknown as ProtocolSnapshot, signature: await signed(h.signature), photos: await Promise.all(photos.filter(p => p.handover_id === h.id).map(async p => ({ slot: p.slot, path: p.path, url: await signed(p.path) }))) })));
  const invitations = checked(await supabase.from('team_invitations').select('id,organization_id,email,name,role,created_at,expires_at,accepted_at,revoked_at').eq('organization_id', id)) ?? [];
- return { organization, members: rows[0].data, vehicles: rows[1].data, drivers: rows[2].data, orders: rows[3].data, handovers, damages: rows[5].data, events: rows[6].data, invitations } as Data;
+ const extras=await Promise.all(['vehicle_holders','vehicle_assets','vehicle_keys','key_movements'].map(table=>supabase!.from(table as 'vehicle_keys').select('*').eq('organization_id',id)));
+ for(const result of extras)if(result.error)throw new Error(result.error.message);
+ return { organization, members: rows[0].data, vehicles: rows[1].data, drivers: rows[2].data, orders: rows[3].data, handovers, damages: rows[5].data, events: rows[6].data, invitations,holders:extras[0].data,assets:extras[1].data,keys:extras[2].data,key_movements:extras[3].data } as unknown as Data;
 }
 export async function insertCloud(table: 'vehicles' | 'drivers' | 'orders', row: Vehicle | Driver | Order) { if (!supabase) throw new Error('Supabase fehlt.'); if (table === 'vehicles') checked(await supabase.from(table).insert(row as Vehicle)); else if (table === 'drivers') checked(await supabase.from(table).insert(row as Driver)); else checked(await supabase.from(table).insert(row as Order)); }
 export async function updateEntity(data: Data, table: EntityTable, row: Vehicle | Driver | Order, expectedRevision: number, cloud: boolean): Promise<Data | null> {
@@ -88,7 +91,7 @@ export async function cancelOrder(data: Data, order: Order, reason: string, expe
 }
 export async function finalize(data: Data, order: Order, kind: Kind, draft: Draft, cloud: boolean): Promise<Data | null> {
  const vehicle = data.vehicles.find(v => v.id === order.vehicle_id)!;
- const errors = validateHandover(draft, order, vehicle, data.handovers, kind);
+ const errors = [...validateHandover(draft, order, vehicle, data.handovers, kind),...keyValidation(data,vehicle,draft)];
  if (errors.length) throw new Error(errors.join('\n'));
  const id = crypto.randomUUID(), now = new Date().toISOString();
  if (cloud) {
@@ -104,7 +107,7 @@ export async function finalize(data: Data, order: Order, kind: Kind, draft: Draf
     photos.push({ slot: photo.slot, sequence, path: await upload(photo.url, `${i}.jpg`) });
    }
    const signature = await upload(draft.signature, 'signature.png');
-   checked(await supabase.rpc('finalize_handover', { p_id: id, p_order_id: order.id, p_kind: kind, p_mileage: draft.mileage, p_fuel: draft.fuel, p_signer: draft.signer.trim(), p_signature: signature, p_notes: draft.notes, p_photos: photos, p_damages: draft.damages, p_expected_revision: order.revision ?? 1 }));
+   checked(await supabase.rpc('finalize_handover_v2', { p_id: id, p_order_id: order.id, p_kind: kind, p_mileage: draft.mileage, p_fuel: draft.fuel, p_signer: draft.signer.trim(), p_signature: signature, p_notes: draft.notes, p_photos: photos, p_damages: draft.damages, p_expected_revision: order.revision ?? 1,p_keys:{...(draft.keys??{confirmed:false,selected:[],notes:''}),revision:draft.keys?.revision??vehicle.keys_revision??1} }));
   } catch (error) { if (uploaded.length) await supabase.storage.from('evidence').remove(uploaded); throw error; }
   return loadCloud(data.organization.id);
  }
@@ -114,10 +117,13 @@ export async function finalize(data: Data, order: Order, kind: Kind, draft: Draf
   const currentOrder = latest.orders.find(o => o.id === order.id);
   if (!currentOrder || currentOrder.revision !== (order.revision ?? 1)) throw new Error(conflictMessage);
   const currentVehicle = latest.vehicles.find(v => v.id === currentOrder.vehicle_id)!;
-  const currentErrors = validateHandover(draft, currentOrder, currentVehicle, latest.handovers, kind);
+  const currentErrors = [...validateHandover(draft, currentOrder, currentVehicle, latest.handovers, kind),...keyValidation(latest,currentVehicle,draft)];
   if (currentErrors.length) throw new Error(currentErrors.join('\n'));
-  const handover: Handover = { id, organization_id: latest.organization.id, order_id: order.id, kind, mileage: draft.mileage, fuel: draft.fuel, signer: draft.signer.trim(), signature: draft.signature, notes: draft.notes, photos: draft.photos, created_at: now, snapshot: protocolSnapshot(latest, currentOrder) };
+  const handover: Handover = { id, organization_id: latest.organization.id, order_id: order.id, kind, mileage: draft.mileage, fuel: draft.fuel, signer: draft.signer.trim(), signature: draft.signature, notes: draft.notes, photos: draft.photos, created_at: now, snapshot: protocolSnapshot(latest, currentOrder),key_snapshot:keySnapshot(latest,currentVehicle,draft) };
   const next: Data = { ...latest, orders: latest.orders.map(o => o.id === order.id ? { ...o, revision: (o.revision ?? 1) + 1, status: kind === 'pickup' ? 'in_transit' : 'completed' } : o), vehicles: latest.vehicles.map(v => v.id === currentVehicle.id ? { ...v, revision: (v.revision ?? 1) + 1, mileage: draft.mileage, location: kind === 'pickup' ? 'In Transport' : currentOrder.destination } : v), handovers: [...latest.handovers, handover], damages: [...latest.damages, ...draft.damages.map(d => ({ ...d, id: crypto.randomUUID(), organization_id: latest.organization.id, vehicle_id: currentVehicle.id, handover_id: id, created_at: now }))], events: [...latest.events, { id: crypto.randomUUID(), organization_id: latest.organization.id, vehicle_id: currentVehicle.id, order_id: order.id, description: `${kind === 'pickup' ? 'Übernahme' : 'Übergabe'} ${order.reference} · ${draft.mileage.toLocaleString('de-DE')} km · ${draft.signer}`, created_at: now }] };
+  next.keys=(latest.keys??[]).map(k=>draft.keys?.selected.includes(k.id)?{...k,state:kind==='pickup'?'issued':'available',custodian:kind==='pickup'?latest.drivers.find(d=>d.id===currentOrder.driver_id)!.name:'',location:kind==='pickup'?'Beim Fahrer':currentOrder.destination}:k);
+  next.key_movements=[...(latest.key_movements??[]),...(handover.key_snapshot?.selected??[]).map(k=>({id:crypto.randomUUID(),key_id:k.id,key_label:k.label,vehicle_id:currentVehicle.id,organization_id:latest.organization.id,action:kind,person:draft.signer,location:kind==='pickup'?'Beim Fahrer':currentOrder.destination,created_at:now,handover_id:id,actor_name:latest.members[0]?.name??'Administrator'}))];
+  next.vehicles=next.vehicles.map(v=>v.id===currentVehicle.id?{...v,keys_revision:(currentVehicle.keys_revision??1)+1}:v);
   await transaction.store.put(next, 'state'); await transaction.done; return next;
  } catch (error) { transaction.abort(); await transaction.done.catch(() => {}); throw error; }
 }

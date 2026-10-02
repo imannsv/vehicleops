@@ -49,3 +49,11 @@ node tests/cloud.browser.mjs
 ```
 
 Anschließend den Testserver beenden und mit npm run build und npm run start wieder die in .env.local gespeicherte externe Cloud-Anbindung aktivieren. Die Testskripte ändern diese Datei nicht.
+
+## Fahrzeugakte und Passwort-Recovery
+
+Die siebte Migration ergänzt optionale Fahrzeugdaten, private Halter/Anhänge und versionierte Schlüsselverwaltung. Sie bleibt zu älteren Fahrzeug- und Abschluss-Aufrufen kompatibel. Zuerst lokal Migration und Rechte testen, danach im ausgewählten Projekt `nfocyuyuloyjaikkflai` anwenden, anschließend App veröffentlichen. Keine Halteranschriften werden aus Altbeständen rekonstruiert oder in Protokolle kopiert.
+
+Der lokale Maildienst ist unter `http://127.0.0.1:55424` verfügbar, sofern `mailpit` beim Start nicht ausgeschlossen wird. Nach lokalem Cloud-Build und Start prüft `node tests/recovery.browser.mjs` reale Recovery-Mails, Passwortbestätigung, Wiederverwendung und Ablauf sowie mobile Uploadfehler/Wiederholung. Den Test nicht gegen die produktive API umstellen.
+
+Mailanbieter und Absender-Domain fehlen noch. Die benötigten Supabase-SMTP-Einstellungen, Domain-Verifizierung und produktiven Redirect-Adressen sind in [VEHICLE_RECORDS.md](VEHICLE_RECORDS.md) beschrieben. Die bestehende Redirect-Freigabe `https://vehicleops-six.vercel.app/**` umfasst den neuen Wiederherstellungsbildschirm. Einladungsabläufe bleiben erhalten.
