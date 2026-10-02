@@ -892,3 +892,346 @@ begin
  insert into public.vehicle_events(organization_id,vehicle_id,order_id,description) values(o.organization_id,v.id,o.id,(case when p_kind='pickup' then 'Übernahme ' else 'Übergabe ' end)||o.reference||' · '||p_mileage::text||' km · '||trim(p_signer));
  return p_id;
 end $$;
+
+-- Unternehmensprofil, Fahrzeugidentität und Protokolle v2
+alter table public.organizations add column revision integer not null default 1;
+alter table public.organizations add column business_type text not null default 'combined' check(business_type in ('dealer','transfer','combined'));
+alter table public.organizations add column profile jsonb not null default '{}' check(jsonb_typeof(profile)='object');
+alter table public.organizations add column logo_path text;
+alter table public.organizations add column vehicle_counter bigint not null default 0;
+alter table public.vehicles alter column plate drop not null;
+alter table public.vehicles drop constraint vehicles_plate_check;
+alter table public.vehicles add constraint vehicles_plate_check check(plate is null or length(trim(plate))>0);
+alter table public.vehicles add column stock_number text;
+alter table public.vehicles add column generation text not null default '' check(length(generation)<=120);
+alter table public.vehicles add column inventory_kind text not null default 'unassigned' check(inventory_kind in ('unassigned','owned','customer'));
+alter table public.vehicles add column inventory_status text check(inventory_status in ('stock','reserved','sold','rented'));
+alter table public.vehicles add constraint inventory_owned_status check(inventory_kind='owned' or inventory_status is null);
+with numbered as (select id,row_number() over(partition by organization_id order by id) n from public.vehicles)
+update public.vehicles v set stock_number='FZ-'||lpad(n.n::text,greatest(6,length(n.n::text)),'0') from numbered n where v.id=n.id;
+update public.organizations o set vehicle_counter=(select count(*) from public.vehicles where organization_id=o.id);
+alter table public.vehicles alter column stock_number set not null;
+alter table public.vehicles add unique(organization_id,stock_number);
+alter table public.orders add column transport_plate text;
+
+create table public.stock_events (
+ id uuid primary key default gen_random_uuid(),organization_id uuid not null,vehicle_id uuid not null,
+ previous_kind text, next_kind text not null,previous_status text,next_status text,
+ reason text not null check(length(trim(reason)) between 1 and 1000), actor_name text not null,
+ created_at timestamptz not null default now(),handover_id uuid,
+ foreign key(vehicle_id,organization_id) references public.vehicles(id,organization_id),
+ foreign key(handover_id,organization_id) references public.handovers(id,organization_id)
+);
+create index stock_events_vehicle_idx on public.stock_events(vehicle_id,organization_id);
+create index stock_events_org_idx on public.stock_events(organization_id);
+create index stock_events_handover_idx on public.stock_events(handover_id,organization_id);
+alter table public.stock_events enable row level security;
+revoke all on public.stock_events from public,anon,authenticated;
+grant select on public.stock_events to authenticated;
+create policy stock_events_read on public.stock_events for select to authenticated using(private.member_role(organization_id) is not null);
+
+create function private.assign_vehicle_identity() returns trigger language plpgsql security definer set search_path='' as $$
+declare n bigint;
+begin
+ new.plate:=nullif(upper(trim(new.plate)),'');
+ if tg_op='INSERT' then
+  update public.organizations set vehicle_counter=vehicle_counter+1 where id=new.organization_id returning vehicle_counter into n;
+  if n is null then raise exception 'Organisation fehlt'; end if;
+  new.stock_number:='FZ-'||lpad(n::text,greatest(6,length(n::text)),'0');
+ elsif new.stock_number is distinct from old.stock_number then raise exception 'Bestandsnummer ist unveränderlich'; end if;
+ return new;
+end $$;
+create trigger assign_vehicle_identity before insert or update on public.vehicles for each row execute function private.assign_vehicle_identity();
+revoke all on function private.assign_vehicle_identity() from public,anon,authenticated;
+
+create function private.record_stock_change() returns trigger language plpgsql security definer set search_path='' as $$
+declare reason text;actor text;
+begin
+ if new.inventory_kind is not distinct from old.inventory_kind and new.inventory_status is not distinct from old.inventory_status then return new;end if;
+ reason:=nullif(trim(current_setting('vehicleops.stock_reason',true)),'');
+ if reason is null or length(reason)>1000 then raise exception 'Bestandsänderung benötigt einen Anlass';end if;
+ select name into actor from public.memberships where user_id=auth.uid() and organization_id=new.organization_id;
+ insert into public.stock_events(organization_id,vehicle_id,previous_kind,next_kind,previous_status,next_status,reason,actor_name,handover_id)
+ values(new.organization_id,new.id,old.inventory_kind,new.inventory_kind,old.inventory_status,new.inventory_status,reason,coalesce(actor,'System'),nullif(current_setting('vehicleops.movement_handover',true),'')::uuid);
+ return new;
+end $$;
+create trigger record_stock_change after update of inventory_kind,inventory_status on public.vehicles for each row execute function private.record_stock_change();
+revoke all on function private.record_stock_change() from public,anon,authenticated;
+
+insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types) values('company-logos','company-logos',false,10485760,array['image/png']);
+create policy company_logo_insert on storage.objects for insert to authenticated with check(bucket_id='company-logos' and exists(select 1 from public.organizations o where o.id::text=(storage.foldername(storage.objects.name))[1] and private.member_role(o.id)='admin'));
+create policy company_logo_read on storage.objects for select to authenticated using(bucket_id='company-logos' and exists(select 1 from public.organizations o where o.id::text=(storage.foldername(storage.objects.name))[1]));
+-- Logos are versioned evidence. No update/delete policy permits replacing a referenced logo.
+create function private.save_company(p_org uuid,p_revision integer,p_name text,p_type text,p_profile jsonb,p_logo text) returns void language plpgsql security definer set search_path='' as $$
+declare o public.organizations; entry record;
+begin
+ if auth.uid() is null or coalesce(private.member_role(p_org),'')<>'admin' then raise exception 'Keine Berechtigung';end if;
+ select * into o from public.organizations where id=p_org for update;
+ if o.revision is distinct from p_revision then raise exception 'Unternehmen wurde inzwischen geändert. Bitte neu laden.';end if;
+ if jsonb_typeof(p_profile) is distinct from 'object' then raise exception 'Firmenangaben ungültig';end if;
+ for entry in select * from jsonb_each(p_profile) loop
+  if entry.key not in ('legal_form','management','street','postal_code','city','country','email','phone','website','tax_number','vat_id','register_court','register_number') or jsonb_typeof(entry.value)<>'string' or length(entry.value#>>'{}')>300 then raise exception 'Firmenangaben ungültig';end if;
+ end loop;
+ if coalesce(p_profile->>'website','')<>'' and p_profile->>'website' !~ '^https?://' then raise exception 'Webseite benötigt http oder https';end if;
+ if p_logo is not null and (left(p_logo,length(p_org::text)+1)<>p_org::text||'/' or not exists(select 1 from storage.objects where bucket_id='company-logos' and name=p_logo and metadata->>'mimetype'='image/png')) then raise exception 'Logo fehlt';end if;
+ update public.organizations set name=trim(p_name),business_type=p_type,profile=p_profile,logo_path=p_logo,revision=revision+1 where id=p_org;
+end $$;
+create function public.save_company(p_org uuid,p_revision integer,p_name text,p_type text,p_profile jsonb,p_logo text) returns void language sql security invoker set search_path='' as $$select private.save_company(p_org,p_revision,p_name,p_type,p_profile,p_logo)$$;
+revoke all on function private.save_company(uuid,integer,text,text,jsonb,text),public.save_company(uuid,integer,text,text,jsonb,text) from public,anon;
+grant execute on function private.save_company(uuid,integer,text,text,jsonb,text),public.save_company(uuid,integer,text,text,jsonb,text) to authenticated;
+
+create or replace function private.update_vehicle(p_id uuid,p_expected_revision integer,p_values jsonb) returns void language plpgsql security definer set search_path='' as $$
+declare v public.vehicles; next public.vehicles; floor integer;
+begin
+ select * into v from public.vehicles where id=p_id for update;
+ if not found then raise exception 'Datensatz fehlt'; end if;
+ if auth.uid() is null or coalesce(private.member_role(v.organization_id),'') not in ('admin','dispatcher') then raise exception 'Keine Berechtigung'; end if;
+ if p_expected_revision is distinct from v.revision then raise exception 'Dieser Datensatz wurde inzwischen geändert. Bitte neu laden und die Änderung erneut prüfen.'; end if;
+ perform set_config('vehicleops.stock_reason',coalesce(p_values->>'stock_reason',''),true);
+ next := jsonb_populate_record(v,p_values);
+ if next.id<>v.id or next.organization_id<>v.organization_id then raise exception 'Mandant oder ID kann nicht verändert werden'; end if;
+ if length(trim(next.make))=0 or length(trim(next.model))=0 or length(trim(next.color))=0 or length(trim(next.location))=0 then raise exception 'Bitte alle Fahrzeugfelder ausfüllen'; end if;
+ select coalesce(max(h.mileage),0) into floor from public.handovers h join public.orders o on o.id=h.order_id and o.organization_id=h.organization_id where o.vehicle_id=v.id and o.organization_id=v.organization_id;
+ if next.mileage<floor then raise exception 'Kilometerstand muss mindestens % km betragen',floor; end if;
+ if exists(select 1 from public.orders where vehicle_id=v.id and organization_id=v.organization_id and status='in_transit') and (next.mileage is distinct from v.mileage or next.location is distinct from v.location) then raise exception 'Während des Transports werden Kilometerstand und Standort durch das Protokoll aktualisiert.'; end if;
+ update public.vehicles set plate=upper(trim(next.plate)),vin=upper(trim(next.vin)),make=trim(next.make),model=trim(next.model),color=trim(next.color),mileage=next.mileage,location=trim(next.location),variant=trim(next.variant),equipment=next.equipment,equipment_notes=trim(next.equipment_notes),build_year=next.build_year,first_registration=next.first_registration,generation=trim(next.generation),inventory_kind=next.inventory_kind,inventory_status=next.inventory_status where id=v.id;
+ insert into public.vehicle_events(organization_id,vehicle_id,description) values(v.organization_id,v.id,'Fahrzeugdaten aktualisiert: '||v.stock_number);
+end $$;
+
+
+create or replace function private.save_vehicle_record(p_id uuid,p_org uuid,p_revision integer,p_values jsonb,p_holder jsonb,p_holder_revision integer) returns void language plpgsql security definer set search_path='' as $$
+begin
+ if auth.uid() is null or coalesce(private.member_role(p_org),'') not in ('admin','dispatcher') then raise exception 'Keine Berechtigung'; end if;
+ if p_revision=0 then
+  insert into public.vehicles(id,organization_id,plate,vin,make,model,color,mileage,location,variant,equipment,equipment_notes,build_year,first_registration,generation,inventory_kind,inventory_status)
+  values(p_id,p_org,upper(trim(p_values->>'plate')),upper(trim(p_values->>'vin')),trim(p_values->>'make'),trim(p_values->>'model'),trim(p_values->>'color'),(p_values->>'mileage')::integer,trim(p_values->>'location'),coalesce(p_values->>'variant',''),array(select jsonb_array_elements_text(coalesce(p_values->'equipment','[]'))),coalesce(p_values->>'equipment_notes',''),(p_values->>'build_year')::integer,(p_values->>'first_registration')::date,coalesce(p_values->>'generation',''),coalesce(p_values->>'inventory_kind','unassigned'),p_values->>'inventory_status');
+ else
+  if not exists(select 1 from public.vehicles where id=p_id and organization_id=p_org) then raise exception 'Fahrzeug fehlt'; end if;
+  perform private.update_vehicle(p_id,p_revision,p_values);
+ end if;
+ if p_holder is not null then perform private.save_vehicle_holder(p_id,p_holder_revision,p_holder); end if;
+end $$;
+
+create or replace function private.update_order(p_id uuid,p_expected_revision integer,p_values jsonb) returns void language plpgsql security definer set search_path='' as $$
+declare o public.orders; next public.orders; driver_name text;
+begin
+ select * into o from public.orders where id=p_id for update;
+ if not found then raise exception 'Datensatz fehlt'; end if;
+ if auth.uid() is null or coalesce(private.member_role(o.organization_id),'') not in ('admin','dispatcher') then raise exception 'Keine Berechtigung'; end if;
+ if p_expected_revision is distinct from o.revision then raise exception 'Dieser Datensatz wurde inzwischen geändert. Bitte neu laden und die Änderung erneut prüfen.'; end if;
+ if o.status not in ('assigned','in_transit') then raise exception 'Abgeschlossene und stornierte Aufträge können nicht bearbeitet werden.'; end if;
+ next := jsonb_populate_record(o,p_values);
+ if next.id<>o.id or next.organization_id<>o.organization_id or next.status<>o.status or next.reference<>o.reference then raise exception 'Status, Mandant und Referenz können hier nicht verändert werden'; end if;
+ if o.status='in_transit' and (next.vehicle_id is distinct from o.vehicle_id or next.pickup is distinct from o.pickup) then raise exception 'Nach der Übernahme bleiben Fahrzeug und Abholort unverändert.'; end if;
+ update public.orders set vehicle_id=next.vehicle_id,driver_id=next.driver_id,pickup=trim(next.pickup),destination=trim(next.destination),scheduled_at=next.scheduled_at,contact=coalesce(next.contact,'') where id=o.id;
+ select name into driver_name from public.drivers where id=next.driver_id and organization_id=o.organization_id;
+ insert into public.vehicle_events(organization_id,vehicle_id,order_id,description) values(o.organization_id,next.vehicle_id,o.id,'Auftrag '||o.reference||' aktualisiert · Fahrer: '||driver_name||' · Termin: '||to_char(next.scheduled_at at time zone 'Europe/Berlin','DD.MM.YYYY HH24:MI'));
+ if next.vehicle_id<>o.vehicle_id then insert into public.vehicle_events(organization_id,vehicle_id,order_id,description) values(o.organization_id,o.vehicle_id,o.id,'Fahrzeug aus Auftrag '||o.reference||' entfernt.'); end if;
+end $$;
+
+alter table public.handovers add column vehicle_id uuid;
+update public.handovers h set vehicle_id=o.vehicle_id from public.orders o where o.id=h.order_id;
+alter table public.handovers alter column vehicle_id set not null;
+alter table public.handovers add foreign key(vehicle_id,organization_id) references public.vehicles(id,organization_id);
+create index handovers_vehicle_idx on public.handovers(vehicle_id,organization_id);
+alter table public.handovers alter column order_id drop not null;
+alter table public.handovers add column version integer not null default 1 check(version in (1,2));
+alter table public.handovers add column purpose text not null default 'transport' check(purpose in ('transport','purchase','sale','rental','return','other'));
+alter table public.handovers add column parties jsonb;
+alter table public.handovers add column position jsonb;
+alter table public.handovers add column transport_plate text;
+alter table public.handovers add column signature_bucket text not null default 'evidence';
+alter table public.handovers add column request_hash text;
+alter table public.handover_photos add column bucket text not null default 'evidence';
+create or replace function private.capture_protocol_snapshot() returns trigger language plpgsql security invoker set search_path='' as $$
+begin
+ if new.version=1 then
+  select jsonb_build_object('organization_name',g.name,'vehicle',to_jsonb(v),'driver',to_jsonb(d),'order',to_jsonb(o)) ,v.id into new.snapshot,new.vehicle_id
+  from public.orders o join public.vehicles v on v.id=o.vehicle_id and v.organization_id=o.organization_id join public.drivers d on d.id=o.driver_id and d.organization_id=o.organization_id join public.organizations g on g.id=o.organization_id where o.id=new.order_id and o.organization_id=new.organization_id;
+ end if;
+ return new;
+end $$;
+
+create table public.protocol_sessions (
+ id uuid primary key,organization_id uuid not null,vehicle_id uuid not null,order_id uuid,kind text not null check(kind in ('pickup','delivery')),
+ created_by uuid not null references auth.users(id),created_at timestamptz not null default now(),vehicle_revision integer not null,order_revision integer,closed boolean not null default false,
+ foreign key(vehicle_id,organization_id) references public.vehicles(id,organization_id),foreign key(order_id,organization_id) references public.orders(id,organization_id)
+);
+create index protocol_sessions_vehicle_idx on public.protocol_sessions(vehicle_id,organization_id);
+create index protocol_sessions_order_idx on public.protocol_sessions(order_id,organization_id);
+create index protocol_sessions_creator_idx on public.protocol_sessions(created_by);
+create index protocol_sessions_org_idx on public.protocol_sessions(organization_id);
+alter table public.protocol_sessions enable row level security;
+revoke all on public.protocol_sessions from public,anon,authenticated;
+grant select on public.protocol_sessions to authenticated;
+create policy protocol_session_read on public.protocol_sessions for select to authenticated using(created_by=(select auth.uid()) and private.member_role(organization_id) is not null);
+
+create function private.can_use_protocol(p_id uuid) returns boolean language sql stable security definer set search_path='' as $$
+select auth.uid() is not null and exists(select 1 from public.protocol_sessions s where s.id=p_id and s.created_by=auth.uid() and (
+private.member_role(s.organization_id) in ('admin','dispatcher') or (private.member_role(s.organization_id)='driver' and exists(select 1 from public.orders o join public.drivers d on d.id=o.driver_id and d.organization_id=o.organization_id where o.id=s.order_id and o.organization_id=s.organization_id and o.vehicle_id=s.vehicle_id and d.user_id=auth.uid() and o.status in ('assigned','in_transit')))))
+$$;
+revoke all on function private.can_use_protocol(uuid) from public,anon;
+grant execute on function private.can_use_protocol(uuid) to authenticated;
+create function private.start_protocol(p_id uuid,p_vehicle uuid,p_order uuid,p_kind text) returns uuid language plpgsql security definer set search_path='' as $$
+declare v public.vehicles;o public.orders;r text;s public.protocol_sessions;
+begin
+ select * into v from public.vehicles where id=p_vehicle;
+ if not found or auth.uid() is null then raise exception 'Fahrzeug fehlt oder Anmeldung erforderlich';end if;
+ r:=private.member_role(v.organization_id);
+ if p_order is not null then
+  select * into o from public.orders where id=p_order and organization_id=v.organization_id and vehicle_id=v.id;
+  if not found or not ((p_kind='pickup' and o.status='assigned') or (p_kind='delivery' and o.status='in_transit')) then raise exception 'Auftragsstatus erlaubt diesen Vorgang nicht';end if;
+  if not (coalesce(r,'') in ('admin','dispatcher') or (r='driver' and exists(select 1 from public.drivers where id=o.driver_id and user_id=auth.uid()))) then raise exception 'Keine Berechtigung';end if;
+ else
+  if coalesce(r,'') not in ('admin','dispatcher') then raise exception 'Keine Berechtigung';end if;
+  if exists(select 1 from public.orders where vehicle_id=v.id and status='in_transit') then raise exception 'Fahrzeug ist in Transport';end if;
+ end if;
+ select * into s from public.protocol_sessions where id=p_id;
+ if found then
+  if s.created_by<>auth.uid() or s.vehicle_id<>v.id or s.order_id is distinct from p_order or s.kind<>p_kind then raise exception 'Protokoll-ID bereits verwendet';end if;
+ else
+  insert into public.protocol_sessions(id,organization_id,vehicle_id,order_id,kind,created_by,vehicle_revision,order_revision) values(p_id,v.organization_id,v.id,p_order,p_kind,auth.uid(),v.revision,o.revision);
+ end if;
+ return p_id;
+end $$;
+create function public.start_protocol(p_id uuid,p_vehicle uuid,p_order uuid,p_kind text) returns uuid language sql security invoker set search_path='' as $$select private.start_protocol(p_id,p_vehicle,p_order,p_kind)$$;
+revoke all on function private.start_protocol(uuid,uuid,uuid,text),public.start_protocol(uuid,uuid,uuid,text) from public,anon;
+grant execute on function private.start_protocol(uuid,uuid,uuid,text),public.start_protocol(uuid,uuid,uuid,text) to authenticated;
+
+insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types) values('protocol-media','protocol-media',false,5242880,array['image/jpeg','image/png']);
+create policy protocol_media_insert on storage.objects for insert to authenticated with check(bucket_id='protocol-media' and exists(select 1 from public.protocol_sessions s where s.id::text=(storage.foldername(storage.objects.name))[2] and s.organization_id::text=(storage.foldername(storage.objects.name))[1] and not s.closed and private.can_use_protocol(s.id)));
+create policy protocol_media_read on storage.objects for select to authenticated using(bucket_id='protocol-media' and exists(select 1 from public.organizations o where o.id::text=(storage.foldername(storage.objects.name))[1]));
+create policy protocol_media_cleanup on storage.objects for delete to authenticated using(bucket_id='protocol-media' and owner_id=auth.uid()::text and not exists(select 1 from public.handover_photos p where p.bucket=bucket_id and p.path=name) and not exists(select 1 from public.handovers h where h.signature_bucket=bucket_id and (h.signature=name or h.parties->'giver'->>'signature'=name or h.parties->'receiver'->>'signature'=name)));
+
+create function private.finalize_protocol(p_id uuid,p_values jsonb) returns uuid language plpgsql security definer set search_path='' as $$
+declare s public.protocol_sessions;v public.vehicles;o public.orders;org public.organizations;old public.handovers;r text;fingerprint text;prefix text;photo jsonb;party jsonb;dam jsonb;keys jsonb;picked uuid[];key_data jsonb;expected integer;k public.vehicle_keys;actor text;target text;site uuid;space uuid;main_signature text;signer text;purpose text;body jsonb;
+begin
+ select * into s from public.protocol_sessions where id=p_id for update;
+ if not found or auth.uid() is null or s.created_by<>auth.uid() then raise exception 'Protokoll fehlt oder keine Berechtigung';end if;
+ r:=private.member_role(s.organization_id);
+ if coalesce(r,'') not in ('admin','dispatcher') and not (r='driver' and exists(select 1 from public.orders a join public.drivers d on d.id=a.driver_id where a.id=s.order_id and a.organization_id=s.organization_id and d.user_id=auth.uid())) then raise exception 'Keine Berechtigung';end if;
+ if jsonb_typeof(p_values) is distinct from 'object' then raise exception 'Protokoll ungültig';end if;
+ fingerprint:=encode(extensions.digest(p_values::text,'sha256'),'hex');
+ select * into old from public.handovers where id=p_id;
+ if found then if old.request_hash=fingerprint then return p_id;else raise exception 'Protokoll-ID mit anderem Inhalt bereits abgeschlossen';end if;end if;
+ if s.order_id is not null then
+  select * into o from public.orders where id=s.order_id for update;
+  if o.vehicle_id<>s.vehicle_id or o.revision<>s.order_revision or (p_values->>'order_revision')::integer is distinct from o.revision or not ((s.kind='pickup' and o.status='assigned') or (s.kind='delivery' and o.status='in_transit')) then raise exception 'Auftrag wurde inzwischen geändert. Bitte Entwurf neu prüfen.';end if;
+ end if;
+ select * into v from public.vehicles where id=s.vehicle_id for update;
+ if v.revision<>s.vehicle_revision or (p_values->>'vehicle_revision')::integer is distinct from v.revision then raise exception 'Fahrzeug wurde inzwischen geändert. Bitte Entwurf neu prüfen.';end if;
+ if s.order_id is null and exists(select 1 from public.orders where vehicle_id=v.id and status='in_transit') then raise exception 'Fahrzeug ist in Transport';end if;
+ select * into org from public.organizations where id=s.organization_id for share;
+ if (p_values->>'company_revision')::integer is distinct from org.revision then raise exception 'Unternehmensprofil wurde geändert. Bitte neu prüfen.';end if;
+ purpose:=case when s.order_id is not null then 'transport' else p_values->>'purpose' end;
+ if purpose is null or purpose not in ('transport','purchase','sale','rental','return','other') or (s.order_id is null and purpose='transport') then raise exception 'Anlass fehlt';end if;
+ if (p_values->>'mileage')::integer<v.mileage or (p_values->>'mileage') is null or (p_values->>'fuel')::integer not between 0 and 100 or p_values->>'fuel' is null then raise exception 'Kilometer oder Tank-/Ladestand ungültig';end if;
+ prefix:=s.organization_id::text||'/'||p_id::text||'/';
+ body:=p_values->'parties';
+ if jsonb_typeof(body) is distinct from 'object' then raise exception 'Beteiligte fehlen';end if;
+ for party in select value from jsonb_each(body) where key in ('giver','receiver') loop
+  if length(trim(coalesce(party->>'name',''))) not between 1 and 120 or length(trim(coalesce(party->>'role',''))) not between 1 and 120 then raise exception 'Beide Beteiligten benötigen Name und Funktion';end if;
+  if coalesce(party->>'signature','')<>'' and (left(party->>'signature',length(prefix))<>prefix or not exists(select 1 from storage.objects where bucket_id='protocol-media' and name=party->>'signature' and owner_id=auth.uid()::text and metadata->>'mimetype'='image/png')) then raise exception 'Unterschriftdatei fehlt';end if;
+ end loop;
+ if not (body ? 'giver' and body ? 'receiver') then raise exception 'Beide Beteiligten fehlen';end if;
+ main_signature:=coalesce(nullif(body->'receiver'->>'signature',''),nullif(body->'giver'->>'signature',''));
+ if main_signature is null then raise exception 'Mindestens eine Unterschrift erforderlich';end if;
+ if coalesce(body->'giver'->>'signature','')='' or coalesce(body->'receiver'->>'signature','')='' then
+  if coalesce((body->>'exception_confirmed')::boolean,false)=false or length(trim(coalesce(body->>'exception_reason',''))) not between 1 and 1000 then raise exception 'Fehlende Unterschrift benötigt bestätigte Ausnahme und Begründung';end if;
+ elsif body->'giver'->>'signature'=body->'receiver'->>'signature' then raise exception 'Unterschriften benötigen getrennte Dateien';end if;
+ if length(coalesce(p_values->>'transport_plate',''))>40 then raise exception 'Transportkennzeichen zu lang';end if;
+ if length(coalesce(p_values->>'notes',''))>4000 then raise exception 'Hinweise zu lang';end if;
+ if jsonb_typeof(p_values->'photos') is distinct from 'array' or (select count(distinct item->>'slot') from jsonb_array_elements(p_values->'photos') item where item->>'slot' in ('Vorne','Hinten','Links','Rechts','Vorne links','Vorne rechts','Hinten links','Hinten rechts','Innenraum','Tacho'))<>10 then raise exception 'Zehn Pflichtperspektiven erforderlich';end if;
+ if exists(select 1 from jsonb_array_elements(p_values->'photos') item where item->>'slot' is null or item->>'slot' not in ('Vorne','Hinten','Links','Rechts','Vorne links','Vorne rechts','Hinten links','Hinten rechts','Innenraum','Tacho')) or exists(select 1 from jsonb_array_elements(p_values->'photos') item where item->>'slot'<>'Innenraum' group by item->>'slot' having count(*)>1) then raise exception 'Ungültige Fotoperspektiven';end if;
+ if (select count(distinct item->>'path') from jsonb_array_elements(p_values->'photos') item)<>jsonb_array_length(p_values->'photos') then raise exception 'Separate Fotodateien erforderlich';end if;
+ for photo in select * from jsonb_array_elements(p_values->'photos') loop
+  if photo->>'path' is null or left(photo->>'path',length(prefix))<>prefix or not exists(select 1 from storage.objects where bucket_id='protocol-media' and name=photo->>'path' and owner_id=auth.uid()::text and metadata->>'mimetype'='image/jpeg') then raise exception 'Fotodatei fehlt';end if;
+ end loop;
+ keys:=p_values->'keys';
+ if jsonb_typeof(keys) is distinct from 'object' or (keys->>'revision')::integer is distinct from v.keys_revision or jsonb_typeof(keys->'selected') is distinct from 'array' then raise exception 'Schlüsselbestand wurde geändert';end if;
+ picked:=array(select jsonb_array_elements_text(keys->'selected')::uuid);
+ if cardinality(picked)<>(select count(distinct value) from unnest(picked) value) or exists(select 1 from unnest(picked) value where not exists(select 1 from public.vehicle_keys where id=value and vehicle_id=v.id and state in ('available','issued'))) then raise exception 'Schlüsselauswahl ungültig';end if;
+ select count(*) into expected from public.vehicle_keys where vehicle_id=v.id and state in ('available','issued');
+ if v.keys_recorded and (coalesce((keys->>'confirmed')::boolean,false)=false or (expected<>cardinality(picked) and length(trim(coalesce(keys->>'notes','')))=0)) then raise exception 'Schlüsselbestand bestätigen und Abweichung begründen';end if;
+ if length(coalesce(keys->>'notes',''))>1000 then raise exception 'Schlüsselhinweis zu lang';end if;
+ select coalesce(jsonb_agg(jsonb_build_object('id',id,'label',label,'identifier',identifier) order by label),'[]') into key_data from public.vehicle_keys where id=any(picked);
+ if s.order_id is null then
+  if coalesce((p_values->'position'->>'confirmed')::boolean,false)=false then raise exception 'Tatsächliche Position bestätigen';end if;
+  site:=nullif(p_values->'position'->>'site_id','')::uuid;space:=nullif(p_values->'position'->>'space_id','')::uuid;
+  if site is not null then select name into target from public.fleet_sites where id=site and organization_id=v.organization_id;if not found then raise exception 'Standort ungültig';end if;
+  else target:=trim(p_values->'position'->>'location');end if;
+  if length(coalesce(target,'')) not between 1 and 240 then raise exception 'Position fehlt';end if;
+  if space is not null and (site is null or not exists(select 1 from public.parking_spaces where id=space and site_id=site and organization_id=v.organization_id)) then raise exception 'Stellplatz ungültig';end if;
+  if v.inventory_kind='owned' then
+   if coalesce((p_values->>'stock_confirmed')::boolean,false)=false then raise exception 'Bestandsstatus bestätigen';end if;
+  elsif nullif(p_values->>'stock_status','') is not null then raise exception 'Bestandsstatus nur für eigenen Bestand';end if;
+ else
+  target:=case when s.kind='pickup' then 'In Transport' else o.destination end;
+  if nullif(p_values->>'stock_status','') is distinct from v.inventory_status then raise exception 'Transport ändert keinen Verkaufsstatus';end if;
+ end if;
+ signer:=case when coalesce(body->'receiver'->>'signature','')<>'' then body->'receiver'->>'name' else body->'giver'->>'name' end;
+ insert into public.handovers(id,organization_id,vehicle_id,order_id,kind,mileage,fuel,signer,signature,signature_bucket,notes,created_by,version,purpose,parties,position,transport_plate,request_hash,snapshot,key_snapshot)
+ values(p_id,s.organization_id,v.id,s.order_id,s.kind,(p_values->>'mileage')::integer,(p_values->>'fuel')::integer,signer,main_signature,'protocol-media',coalesce(p_values->>'notes',''),auth.uid(),2,purpose,body,jsonb_build_object('location',target,'site_id',site,'space_id',space,'space_label',(select label from public.parking_spaces where id=space and organization_id=v.organization_id),'stock_status',case when s.order_id is null and v.inventory_kind='owned' then nullif(p_values->>'stock_status','') else v.inventory_status end),nullif(upper(trim(p_values->>'transport_plate')),''),fingerprint,
+ jsonb_build_object('organization_name',org.name,'known_damages',(select coalesce(jsonb_agg(jsonb_build_object('id',d.id,'area',d.area,'description',d.description)),'[]'::jsonb) from public.damages d where d.vehicle_id=v.id and d.organization_id=v.organization_id),'organization',jsonb_build_object('id',org.id,'name',org.name,'profile',org.profile,'logo_path',org.logo_path),'vehicle',to_jsonb(v),'order',case when s.order_id is not null then to_jsonb(o) end,'driver',case when s.order_id is not null then (select to_jsonb(d) from public.drivers d where id=o.driver_id) end),
+ jsonb_build_object('recorded',v.keys_recorded,'selected',key_data,'expected_count',expected,'notes',coalesce(keys->>'notes','')));
+ insert into public.handover_photos(organization_id,handover_id,slot,path,sequence,bucket) select s.organization_id,p_id,item->>'slot',item->>'path',(row_number() over(partition by item->>'slot' order by ordinality)-1)::integer,'protocol-media' from jsonb_array_elements(p_values->'photos') with ordinality as elements(item,ordinality);
+ if jsonb_typeof(p_values->'damages') is distinct from 'array' then raise exception 'Schäden ungültig';end if;
+ for dam in select * from jsonb_array_elements(p_values->'damages') loop insert into public.damages(organization_id,vehicle_id,handover_id,area,description) values(s.organization_id,v.id,p_id,trim(dam->>'area'),trim(dam->>'description'));end loop;
+ perform set_config('vehicleops.movement_source',case when s.order_id is null then 'manual' else s.kind end,true);
+ perform set_config('vehicleops.movement_reason',case when s.order_id is null then 'Eigenständiges Protokoll: '||purpose else 'Transportprotokoll: '||o.reference end,true);
+ perform set_config('vehicleops.movement_handover',p_id::text,true);
+ perform set_config('vehicleops.stock_reason','Protokoll: '||purpose,true);
+ update public.vehicles set mileage=(p_values->>'mileage')::integer,location=target,site_id=site,parking_space_id=space,
+ inventory_status=case when s.order_id is null and v.inventory_kind='owned' then nullif(p_values->>'stock_status','') else v.inventory_status end,keys_revision=keys_revision+1 where id=v.id;
+ if s.order_id is not null then update public.orders set status=case when s.kind='pickup' then 'in_transit' else 'completed' end where id=o.id;end if;
+ select name into actor from public.memberships where organization_id=s.organization_id and user_id=auth.uid();
+ for k in select * from public.vehicle_keys where id=any(picked) for update loop
+  update public.vehicle_keys set state=case when (s.order_id is null and s.kind='pickup') or (s.order_id is not null and s.kind='delivery') then 'available' else 'issued' end,location=target,custodian=case when (s.order_id is null and s.kind='pickup') or (s.order_id is not null and s.kind='delivery') then '' else body->'receiver'->>'name' end where id=k.id;
+  insert into public.key_movements(organization_id,vehicle_id,key_id,key_label,action,person,location,actor_name,handover_id) values(s.organization_id,v.id,k.id,k.label,s.kind,body->'receiver'->>'name',target,actor,p_id);
+ end loop;
+ insert into public.vehicle_events(organization_id,vehicle_id,order_id,description) values(s.organization_id,v.id,s.order_id,case when s.kind='pickup' then 'Fahrzeugübernahme' else 'Fahrzeugübergabe' end||case when s.order_id is not null then ' '||o.reference else ' · '||purpose end);
+ update public.protocol_sessions set closed=true where id=p_id;
+ return p_id;
+end $$;
+create function public.finalize_protocol(p_id uuid,p_values jsonb) returns uuid language sql security invoker set search_path='' as $$select private.finalize_protocol(p_id,p_values)$$;
+revoke all on function private.finalize_protocol(uuid,jsonb),public.finalize_protocol(uuid,jsonb) from public,anon;
+grant execute on function private.finalize_protocol(uuid,jsonb),public.finalize_protocol(uuid,jsonb) to authenticated;
+
+create or replace function private.update_vehicle(p_id uuid,p_expected_revision integer,p_values jsonb) returns void language plpgsql security definer set search_path='' as $$
+declare v public.vehicles; next public.vehicles; floor integer;
+begin
+ select * into v from public.vehicles where id=p_id for update;
+ if not found then raise exception 'Datensatz fehlt'; end if;
+ if auth.uid() is null or coalesce(private.member_role(v.organization_id),'') not in ('admin','dispatcher') then raise exception 'Keine Berechtigung'; end if;
+ if p_expected_revision is distinct from v.revision then raise exception 'Dieser Datensatz wurde inzwischen geändert. Bitte neu laden und die Änderung erneut prüfen.'; end if;
+ perform set_config('vehicleops.stock_reason',coalesce(p_values->>'stock_reason',''),true);
+ next := jsonb_populate_record(v,p_values);
+ if next.id<>v.id or next.organization_id<>v.organization_id then raise exception 'Mandant oder ID kann nicht verändert werden'; end if;
+ if length(trim(next.make))=0 or length(trim(next.model))=0 or length(trim(next.color))=0 or length(trim(next.location))=0 then raise exception 'Bitte alle Fahrzeugfelder ausfüllen'; end if;
+ select coalesce(max(h.mileage),0) into floor from public.handovers h where h.vehicle_id=v.id and h.organization_id=v.organization_id;
+ if next.mileage<floor then raise exception 'Kilometerstand muss mindestens % km betragen',floor; end if;
+ if exists(select 1 from public.orders where vehicle_id=v.id and organization_id=v.organization_id and status='in_transit') and (next.mileage is distinct from v.mileage or next.location is distinct from v.location) then raise exception 'Während des Transports werden Kilometerstand und Standort durch das Protokoll aktualisiert.'; end if;
+ update public.vehicles set plate=upper(trim(next.plate)),vin=upper(trim(next.vin)),make=trim(next.make),model=trim(next.model),color=trim(next.color),mileage=next.mileage,location=trim(next.location),variant=trim(next.variant),equipment=next.equipment,equipment_notes=trim(next.equipment_notes),build_year=next.build_year,first_registration=next.first_registration,generation=trim(next.generation),inventory_kind=next.inventory_kind,inventory_status=next.inventory_status where id=v.id;
+ insert into public.vehicle_events(organization_id,vehicle_id,description) values(v.organization_id,v.id,'Fahrzeugdaten aktualisiert: '||v.stock_number);
+end $$;
+
+alter table public.vehicles add column cover_kind text check(cover_kind in ('protocol','asset'));
+alter table public.vehicles add column cover_id uuid;
+alter table public.vehicles add constraint vehicle_cover_pair check((cover_id is null)=(cover_kind is null));
+create function private.set_vehicle_cover(p_vehicle uuid,p_revision integer,p_kind text,p_id uuid) returns void language plpgsql security definer set search_path='' as $$
+declare v public.vehicles;
+begin
+ select * into v from public.vehicles where id=p_vehicle for update;
+ if not found or auth.uid() is null or coalesce(private.member_role(v.organization_id),'') not in ('admin','dispatcher') then raise exception 'Keine Berechtigung';end if;
+ if v.revision is distinct from p_revision then raise exception 'Fahrzeug wurde inzwischen geändert';end if;
+ if p_kind='asset' and not exists(select 1 from public.vehicle_assets where id=p_id and vehicle_id=v.id and organization_id=v.organization_id and kind='photo') then raise exception 'Fahrzeugfoto fehlt';
+ elsif p_kind='protocol' and not exists(select 1 from public.handover_photos p join public.handovers h on h.id=p.handover_id and h.organization_id=p.organization_id where p.id=p_id and h.vehicle_id=v.id and h.organization_id=v.organization_id) then raise exception 'Protokollfoto fehlt';
+ elsif p_kind is null and p_id is not null or p_kind is not null and p_id is null then raise exception 'Titelbild ungültig';end if;
+ update public.vehicles set cover_kind=p_kind,cover_id=p_id where id=v.id;
+end $$;
+create function public.set_vehicle_cover(p_vehicle uuid,p_revision integer,p_kind text,p_id uuid) returns void language sql security invoker set search_path='' as $$select private.set_vehicle_cover(p_vehicle,p_revision,p_kind,p_id)$$;
+revoke all on function private.set_vehicle_cover(uuid,integer,text,uuid),public.set_vehicle_cover(uuid,integer,text,uuid) from public,anon;
+grant execute on function private.set_vehicle_cover(uuid,integer,text,uuid),public.set_vehicle_cover(uuid,integer,text,uuid) to authenticated;
+create function private.clear_removed_cover() returns trigger language plpgsql security definer set search_path='' as $$begin update public.vehicles set cover_id=null,cover_kind=null where id=old.vehicle_id and cover_kind='asset' and cover_id=old.id;return old;end$$;
+create trigger clear_removed_cover before delete on public.vehicle_assets for each row execute function private.clear_removed_cover();
+revoke all on function private.clear_removed_cover() from public,anon,authenticated;
