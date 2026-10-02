@@ -1,5 +1,9 @@
 # Verifikation des ersten MVP
 
+## Fahrzeugsuche – 2. Oktober 2026
+
+Die neue Suche unter **Fahrzeuge** und die bestehenden Bestandsfilter bestehen sechs gezielte Browserprüfungen auf Desktop und Pixel 7. Geprüft sind Kennzeichen ohne Trennzeichen, VIN-Teile, Bestandsnummer ohne Bindestrich, mehrere Suchbegriffe, Fahrzeuge ohne Kennzeichen, Standortsuche, Trefferzahl, leere Ergebnisse, Zurücksetzen sowie Erhalt der Suche nach Rückkehr aus der Fahrzeugakte. Beide Ansichten nutzen dieselbe Suchlogik; die mobile Seite hat keinen horizontalen Überlauf. Die 51 Fachlogiktests, ESLint und Produktionsbuild bestehen. Die vollständige GitHub-Prüfung enthält mit den neuen Fällen 42 Browserprüfungen. Diese Änderung benötigt keine Datenbankmigration.
+
 ## Unternehmensprofil und gemeinsame Fahrzeugakte – 2. Oktober 2026
 
 - Aktueller Stand: 51 Fachlogiktests und 40 Browserprüfungen bestanden, je 20 auf Desktop und Pixel 7. TypeScript, ESLint und Produktionsbuild bestehen.

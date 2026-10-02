@@ -1,4 +1,9 @@
 @import "tailwindcss";
+.vehicle-list-heading { flex-wrap:wrap; }
+.vehicle-search { width:min(420px,100%); }
+.search.vehicle-search input { min-width:0; flex:1; }
+.vehicle-search input::-webkit-search-cancel-button { appearance:none; }
+.vehicle-search>svg,.vehicle-search>button { flex-shrink:0; }
 :root { --navy:#142c49; --ink:#192b42; --blue:#245de8; --muted:#697b91; --line:#e3e8ef; --surface:#f5f7fa; }
 * { box-sizing:border-box; }
 body { margin:0; color:var(--ink); background:var(--surface); font-family:"Segoe UI",Arial,sans-serif; font-size:14px; line-height:1.5; }

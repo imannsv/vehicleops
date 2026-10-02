@@ -10,6 +10,8 @@ Jedes Fahrzeug behält seine interne UUID. Eine organisationsintern eindeutige V
 
 Hersteller, Modell und optionale Baureihe bilden den Titel. Baureihe/Generation ist von Ausführung/Variante getrennt. [Katalog, Quellen und Grenzen](VEHICLE_CATALOG.md).
 
+Unter **Fahrzeuge** filtert das Suchfeld die Liste direkt nach Kennzeichen, VIN, Bestandsnummer, Hersteller, Modell, Baureihe, Ausführung, Farbe und Standort/Stellplatz. Mehrere Suchbegriffe lassen sich kombinieren, etwa „Golf Berlin“. Groß-/Kleinschreibung sowie Leerzeichen und Bindestriche in Kennzeichen/Bestandsnummern sind unerheblich. Die Trefferzahl ist sichtbar; das X setzt die Suche zurück. Beim Öffnen einer Fahrzeugakte und Zurückgehen bleibt die Suche erhalten. **Bestand** verwendet dieselbe Suche zusätzlich zu seinen Filtern.
+
 Die ausdrückliche Bestandszuordnung lautet eigener Bestand, Kundenfahrzeug oder noch nicht zugeordnet. Altbestände starten ohne erfundene Eigentumszuordnung. Im eigenen Bestand stehen die Status im Bestand, reserviert, verkauft und vermietet zur Verfügung. Eine manuelle Änderung benötigt einen Anlass; historische Änderungen sind unveränderlich. Verkaufsstatus und Transportauftrag bleiben unabhängig: ein verkauftes Fahrzeug lässt sich weiterhin überführen. Die Bestandsliste filtert zusätzlich nach Zuordnung und Verkaufs-/Vermietungsstatus.
 
 ## Protokolle erstellen
