@@ -1,0 +1,30 @@
+-- Existing vehicle and historical protocol data remain intact. New protocols capture these columns automatically.
+alter table public.vehicles add column variant text not null default '' check(length(variant)<=120);
+alter table public.vehicles add column equipment_notes text not null default '' check(length(equipment_notes)<=2000);
+alter table public.vehicles add column equipment text[] not null default '{}'::text[];
+alter table public.vehicles add constraint vehicle_equipment_check check (
+ cardinality(equipment)<=136 and array_position(equipment,null) is null and equipment <@ array['ABS','AIR_SUSPENSION','ALARM_SYSTEM','ALLOY_WHEELS','ALL_SEASON_TIRES','AMBIENT_LIGHTING','ANDROID_AUTO','ARM_REST','AUTOMATIC_RAIN_SENSOR','AUXILIARY_HEATING','BIODIESEL_SUITABLE','BLIND_SPOT_MONITOR','BLUETOOTH','CARGO_BARRIER','CARPLAY','CD_MULTICHANGER','CD_PLAYER','CENTRAL_LOCKING','COLLISION_AVOIDANCE','DIGITAL_COCKPIT','DIMMING_INTERIOR_MIRROR','DISABLED_ACCESSIBLE','DISTANCE_WARNING_SYSTEM','DYNAMIC_CHASSIS_CONTROL','E10_ENABLED','ELECTRIC_ADJUSTABLE_SEATS','ELECTRIC_BACKSEAT_ADJUSTMENT','ELECTRIC_EXTERIOR_MIRRORS','ELECTRIC_HEATED_REAR_SEATS','ELECTRIC_HEATED_SEATS','ELECTRIC_TAILGATE','ELECTRIC_WINDOWS','EMERGENCY_CALL_SYSTEM','ENVIRONMENTAL_BONUS','ESP','EXPORT','FATIGUE_WARNING_SYSTEM','FOLDING_EXTERIOR_MIRRORS','FOLDING_ROOF','FOLD_FLAT_PASSENGER_SEAT','FRONT_FOG_LIGHTS','FULL_SERVICE_HISTORY','GLARE_FREE_HIGH_BEAM','HANDS_FREE_PHONE_SYSTEM','HEADLIGHT_WASHER_SYSTEM','HEAD_UP_DISPLAY','HEATED_STEERING_WHEEL','HEATED_WINDSHIELD','HEAT_PUMP','HIGH_BEAM_ASSIST','HILL_START_ASSIST','HU_AU_NEU','HYBRID_PLUGIN','IMMOBILIZER','INTEGRATED_MUSIC_STREAMING','ISOFIX','KEYLESS_ENTRY','LANE_DEPARTURE_WARNING','LEATHER_STEERING_WHEEL','LIGHT_SENSOR','LUMBAR_SUPPORT','MASSAGE_SEATS','MATTE_COLOR','MEMORY_SEATS','METALLIC','MULTIFUNCTIONAL_WHEEL','NAVIGATION_PREPARATION','NAVIGATION_SYSTEM','NEW_SERVICE','NIGHT_VISION_ASSIST','NONSMOKER_VEHICLE','ON_BOARD_COMPUTER','PADDLE_SHIFTERS','PANORAMIC_GLASS_ROOF','PARTICULATE_FILTER_DIESEL','PASSENGER_SEAT_ISOFIX_POINT','PERFORMANCE_HANDLING_SYSTEM','POWER_ASSISTED_STEERING','RANGE_EXTENDER','REAR_TRAFFIC_ALERT','RIGHT_HAND_DRIVE','ROOF_RAILS','SKI_BAG','SMOKERS_PACKAGE','SOUND_SYSTEM','SPEED_LIMITER','SPORT_PACKAGE','SPORT_SEATS','START_STOP_SYSTEM','STEEL_WHEELS','SUMMER_TIRES','SUNROOF','TAXI','TINTED_WINDOWS','TIRE_PRESSURE_MONITORING','TOUCHSCREEN','TRACTION_CONTROL_SYSTEM','TRAFFIC_SIGN_RECOGNITION','TRAILER_ASSIST','TV','USB','VEGETABLEOILFUEL_SUITABLE','VENTILATED_SEATS','VIRTUAL_SIDE_MIRROR','VOICE_CONTROL','WARRANTY','WIFI_HOTSPOT','WINTER_PACKAGE','WINTER_TIRES','WIRELESS_CHARGING','CLIMATE_MANUAL','CLIMATE_AUTO','CLIMATE_2_ZONE','CLIMATE_3_ZONE','CLIMATE_4_ZONE','CRUISE_CONTROL','ADAPTIVE_CRUISE_CONTROL','PARKING_FRONT','PARKING_REAR','REAR_CAMERA','CAMERA_360','PARKING_SELF_STEERING','LED_HEADLIGHTS','XENON_HEADLIGHTS','BI_XENON_HEADLIGHTS','LASER_HEADLIGHTS','LED_DAYTIME_LIGHTS','ADAPTIVE_CORNERING_LIGHTS','LEATHER_INTERIOR','PART_LEATHER_INTERIOR','ALCANTARA_INTERIOR','FABRIC_INTERIOR','TRAILER_HITCH_FIXED','TRAILER_HITCH_REMOVABLE','TRAILER_HITCH_SWIVEL','ALL_WHEEL_DRIVE']::text[]
+);
+create function private.validate_vehicle_equipment() returns trigger language plpgsql security invoker set search_path='' as $$
+begin
+ if cardinality(new.equipment)<>(select count(distinct entry) from unnest(new.equipment) entry) then raise exception 'Ausstattung enthält doppelte Einträge'; end if;
+ return new;
+end $$;
+revoke all on function private.validate_vehicle_equipment() from public;
+create trigger validate_vehicle_equipment before insert or update of equipment on public.vehicles for each row execute function private.validate_vehicle_equipment();
+create or replace function private.update_vehicle(p_id uuid,p_expected_revision integer,p_values jsonb) returns void language plpgsql security definer set search_path='' as $$
+declare v public.vehicles; next public.vehicles; floor integer;
+begin
+ select * into v from public.vehicles where id=p_id for update;
+ if not found then raise exception 'Datensatz fehlt'; end if;
+ if auth.uid() is null or coalesce(private.member_role(v.organization_id),'') not in ('admin','dispatcher') then raise exception 'Keine Berechtigung'; end if;
+ if p_expected_revision is distinct from v.revision then raise exception 'Dieser Datensatz wurde inzwischen geändert. Bitte neu laden und die Änderung erneut prüfen.'; end if;
+ next := jsonb_populate_record(v,p_values);
+ if next.id<>v.id or next.organization_id<>v.organization_id then raise exception 'Mandant oder ID kann nicht verändert werden'; end if;
+ if length(trim(next.plate))=0 or length(trim(next.make))=0 or length(trim(next.model))=0 or length(trim(next.color))=0 or length(trim(next.location))=0 then raise exception 'Bitte alle Fahrzeugfelder ausfüllen'; end if;
+ select coalesce(max(h.mileage),0) into floor from public.handovers h join public.orders o on o.id=h.order_id and o.organization_id=h.organization_id where o.vehicle_id=v.id and o.organization_id=v.organization_id;
+ if next.mileage<floor then raise exception 'Kilometerstand muss mindestens % km betragen',floor; end if;
+ if exists(select 1 from public.orders where vehicle_id=v.id and organization_id=v.organization_id and status='in_transit') and (next.mileage is distinct from v.mileage or next.location is distinct from v.location) then raise exception 'Während des Transports werden Kilometerstand und Standort durch das Protokoll aktualisiert.'; end if;
+ update public.vehicles set plate=upper(trim(next.plate)),vin=upper(trim(next.vin)),make=trim(next.make),model=trim(next.model),color=trim(next.color),mileage=next.mileage,location=trim(next.location),variant=trim(next.variant),equipment=next.equipment,equipment_notes=trim(next.equipment_notes) where id=v.id;
+ insert into public.vehicle_events(organization_id,vehicle_id,description) values(v.organization_id,v.id,'Fahrzeugdaten aktualisiert: '||v.plate||' → '||upper(trim(next.plate)));
+end $$;

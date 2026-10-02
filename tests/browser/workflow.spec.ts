@@ -1,0 +1,79 @@
+import { readFile } from 'node:fs/promises';
+import { test, expect } from '@playwright/test';
+import sharp from 'sharp';
+import { shots } from '../../src/lib/domain';
+import { fillPlate } from './plate-helper';
+
+test('Eine Änderung aus einem zweiten Tab wird nicht überschrieben', async ({ page, context }) => {
+ await page.goto('/'); await page.getByRole('button', { name: 'Fahrzeuge', exact: true }).click(); await page.getByRole('button', { name: 'B NM 2048', exact: true }).click(); await page.getByRole('button', { name: 'Fahrzeug bearbeiten' }).click(); await page.getByLabel('Farbe').fill('Rot');
+ const second = await context.newPage(); await second.goto('/'); await second.getByRole('button', { name: 'Fahrzeuge', exact: true }).click(); await second.getByRole('button', { name: 'B NM 2048', exact: true }).click(); await second.getByRole('button', { name: 'Fahrzeug bearbeiten' }).click(); await second.getByLabel('Farbe').fill('Blau'); await second.getByRole('button', { name: 'Speichern', exact: true }).click(); await expect(second.getByRole('dialog')).toHaveCount(0);
+ await page.getByRole('button', { name: 'Speichern', exact: true }).click(); await expect(page.getByRole('dialog').getByRole('alert')).toContainText('inzwischen geändert'); await page.reload(); await page.getByRole('button', { name: 'Fahrzeuge', exact: true }).click(); await page.getByRole('button', { name: 'B NM 2048', exact: true }).click(); await expect(page.getByText('Volkswagen Golf Variant · Blau', { exact: true })).toBeVisible(); await second.close();
+});
+test('Übernahme, Übergabe, Pflichtfelder, PDF und Historie', async ({ page }, testInfo) => {
+ const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+ const photo = await sharp({ create: { width: 640, height: 400, channels: 3, background: '#7799bb' } }).jpeg().toBuffer();
+ await page.goto('/'); await expect(page.getByRole('heading', { name: 'Alles bereit für die nächste Fahrt.' })).toBeVisible();
+ expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+ await page.screenshot({ path: testInfo.outputPath('dashboard.png'), fullPage: true });
+ await page.getByRole('button', { name: 'Fahrzeuge', exact: true }).click(); await page.getByRole('button', { name: 'B NM 2048', exact: true }).click(); await page.getByRole('button', { name: 'Fahrzeug bearbeiten' }).click(); await page.getByLabel('Ausstattung suchen').fill('CarPlay'); await page.getByLabel('Apple CarPlay', { exact: true }).check(); await page.getByLabel('Zusätzliche Ausstattung (optional)').fill('Winterraeder im Kofferraum'); await page.getByRole('button', { name: 'Speichern', exact: true }).click(); await page.getByRole('button', { name: 'Übersicht', exact: true }).click();
+ await page.getByRole('button', { name: 'VO-2048', exact: true }).click(); await page.getByRole('button', { name: 'Übernahme starten' }).click();
+ await expect(page.getByRole('button', { name: 'Protokoll abschließen' })).toBeDisabled();
+ await page.locator('section').filter({ has: page.getByRole('heading', { name: '2. Fotodokumentation' }) }).screenshot({ path: testInfo.outputPath('photo-walkaround.png') });
+ for (const shot of shots) await page.getByLabel(`Foto ${shot}`, { exact: true }).setInputFiles({ name: 'vehicle.jpg', mimeType: 'image/jpeg', buffer: photo });
+ await expect(page.getByText('10 / 10', { exact: true })).toBeVisible();
+ await page.getByLabel('Foto Innenraum', { exact: true }).setInputFiles([{ name: 'rear-seats.jpg', mimeType: 'image/jpeg', buffer: photo }, { name: 'boot.jpg', mimeType: 'image/jpeg', buffer: photo }]);
+ await expect(page.getByText('3 Bilder', { exact: true })).toBeVisible();
+ await page.getByRole('button', { name: 'Innenraumfoto 2 entfernen', exact: true }).click();
+ await expect(page.getByText('2 Bilder', { exact: true })).toBeVisible();
+ await expect(page.getByText('10 / 10', { exact: true })).toBeVisible();
+ await page.locator('section').filter({ has: page.getByRole('heading', { name: '2. Fotodokumentation' }) }).screenshot({ path: testInfo.outputPath('interior-photos.png') });
+ await page.getByLabel('Name der unterzeichnenden Person').fill('Lena Fischer');
+ const canvas = page.getByLabel('Unterschrift mit Maus oder Finger zeichnen'); await canvas.scrollIntoViewIfNeeded();
+ const rect = (await canvas.boundingBox())!; await page.mouse.move(rect.x + 20, rect.y + 50); await page.mouse.down(); await page.mouse.move(rect.x + 80, rect.y + 80, { steps: 6 }); await page.mouse.move(rect.x + 150, rect.y + 45, { steps: 6 }); await page.mouse.up();
+ await expect(page.getByRole('button', { name: 'Protokoll abschließen' })).toBeEnabled();
+ await page.getByLabel('Kilometerstand', { exact: true }).fill('28000'); await expect(page.getByRole('button', { name: 'Protokoll abschließen' })).toBeDisabled();
+ await page.getByLabel('Kilometerstand', { exact: true }).fill('28450');
+ await page.getByRole('button', { name: 'Schaden hinzufügen' }).click(); await page.getByLabel('Bereich', { exact: true }).fill('Felge vorne rechts'); await page.getByLabel('Beschreibung', { exact: true }).fill('Kratzer, etwa 3 cm');
+ await expect(page.getByText('Entwurf lokal gespeichert', { exact: true })).toBeVisible();
+ await page.reload(); await page.getByRole('button', { name: 'VO-2048', exact: true }).click(); await page.getByRole('button', { name: 'Übernahme starten' }).click(); await expect(page.getByLabel('Name der unterzeichnenden Person')).toHaveValue('Lena Fischer'); await expect(page.getByText('2 Bilder', { exact: true })).toBeVisible(); await expect(page.getByText('10 / 10', { exact: true })).toBeVisible();
+ await page.getByRole('button', { name: 'Protokoll abschließen' }).click(); await expect(page.getByRole('button', { name: 'Übergabe starten' })).toBeVisible();
+ const downloadEvent = page.waitForEvent('download'); await page.getByRole('button', { name: 'PDF', exact: true }).click(); const download = await downloadEvent; expect(download.suggestedFilename()).toBe('VO-2048-Uebernahme.pdf'); await download.saveAs(testInfo.outputPath('protocol.pdf')); expect((await readFile(testInfo.outputPath('protocol.pdf'))).toString('latin1')).toContain('Innenraum 2 / 2');
+ expect((await readFile(testInfo.outputPath('protocol.pdf'))).toString('latin1')).toContain('Apple CarPlay');
+ await page.getByRole('button', { name: 'Fahrzeuge', exact: true }).click(); await page.getByRole('button', { name: 'B NM 2048', exact: true }).click(); await page.getByRole('button', { name: 'Fahrzeug bearbeiten' }).click(); await page.getByLabel('Ausstattung suchen').fill('CarPlay'); await page.getByLabel('Apple CarPlay', { exact: true }).uncheck(); await page.getByLabel('Zusätzliche Ausstattung (optional)').fill('Transportbox'); await page.getByRole('button', { name: 'Speichern', exact: true }).click(); await page.getByRole('button', { name: 'Übersicht', exact: true }).click(); await page.getByRole('button', { name: 'VO-2048', exact: true }).click();
+ await page.getByRole('button', { name: 'Auftrag bearbeiten' }).click();
+ await expect(page.getByLabel('Fahrzeug', { exact: true })).toBeDisabled(); await expect(page.getByLabel('Abholort')).toHaveAttribute('readonly', '');
+ await page.getByLabel('Zielort').fill('Bremen'); await page.getByLabel('Fahrer', { exact: true }).selectOption({ label: 'Ben Weber' }); await page.getByRole('button', { name: 'Speichern', exact: true }).click();
+ await expect(page.getByText('Autohaus Mitte, Berlin → Bremen', { exact: true })).toBeVisible(); await expect(page.getByRole('button', { name: 'Stornieren', exact: true })).toHaveCount(0);
+ const unchangedEvent = page.waitForEvent('download'); await page.getByRole('button', { name: 'PDF', exact: true }).click(); const unchanged = await unchangedEvent; await unchanged.saveAs(testInfo.outputPath('unchanged.pdf')); const text = (await readFile(testInfo.outputPath('unchanged.pdf'))).toString('latin1'); expect(text).toContain('Nordstern, Hamburg'); expect(text).not.toContain('Bremen'); expect(text).toContain('Lena Fischer');
+ expect(text).toContain('Apple CarPlay'); expect(text).toContain('Winterraeder im Kofferraum'); expect(text).not.toContain('Transportbox');
+ await page.getByRole('button', { name: 'Übergabe starten' }).click(); await expect(page.getByText('Felge vorne rechts: Kratzer, etwa 3 cm')).toBeVisible();
+ for (const shot of shots) await page.getByLabel(`Foto ${shot}`, { exact: true }).setInputFiles({ name: 'vehicle.jpg', mimeType: 'image/jpeg', buffer: photo });
+ await page.getByLabel('Kilometerstand', { exact: true }).fill('28740'); await page.getByLabel('Name der unterzeichnenden Person').fill('Marie Sommer');
+ const deliveryCanvas = page.getByLabel('Unterschrift mit Maus oder Finger zeichnen'); await deliveryCanvas.scrollIntoViewIfNeeded(); const box = (await deliveryCanvas.boundingBox())!; await page.mouse.move(box.x + 30, box.y + 60); await page.mouse.down(); await page.mouse.move(box.x + 100, box.y + 80, { steps: 8 }); await page.mouse.move(box.x + 170, box.y + 50, { steps: 8 }); await page.mouse.up();
+ await page.getByRole('button', { name: 'Protokoll abschließen' }).click(); await expect(page.getByText('Abgeschlossen', { exact: true })).toBeVisible(); await expect(page.getByRole('button', { name: 'PDF', exact: true })).toHaveCount(2);
+ await page.getByRole('button', { name: 'Fahrzeuge', exact: true }).click(); await page.getByRole('button', { name: 'B NM 2048', exact: true }).click(); await expect(page.getByText('28.740 km', { exact: true })).toBeVisible(); await expect(page.getByText(/Übergabe VO-2048/)).toBeVisible(); await page.reload(); await page.getByRole('button', { name: 'Fahrzeuge', exact: true }).click(); await expect(page.getByText('28.740 km')).toBeVisible();
+ expect(errors).toEqual([]);
+});
+
+test('Stammdaten bearbeiten, Auftrag umplanen und mit Grund stornieren', async ({ page }, testInfo) => {
+ await page.goto('/'); await page.getByRole('button', { name: 'Fahrzeuge', exact: true }).click(); await page.getByRole('button', { name: 'B NM 2048', exact: true }).click(); await page.getByRole('button', { name: 'Fahrzeug bearbeiten', exact: true }).click();
+ await fillPlate(page, 'B NEU 2048'); await page.getByLabel('Farbe').fill('Blau'); await page.getByRole('button', { name: 'Speichern', exact: true }).click(); await expect(page.getByRole('heading', { name: 'B NEU 2048', exact: true })).toBeVisible();
+ await page.getByRole('button', { name: 'Fahrer', exact: true }).click(); const driver = page.locator('.driver-card').filter({ has: page.getByRole('heading', { name: 'Lena Fischer', exact: true }) }); await driver.getByRole('button', { name: 'Fahrer bearbeiten' }).click(); await page.getByLabel('Name', { exact: true }).fill('Lena Neu'); await page.getByLabel('Telefon', { exact: true }).fill('+49 555'); await page.getByRole('button', { name: 'Speichern', exact: true }).click(); await expect(page.getByRole('heading', { name: 'Lena Neu' })).toBeVisible();
+ await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('button', { name: /^Aufträge/ }).click(); await page.getByRole('button', { name: 'VO-2048', exact: true }).click(); await page.getByRole('button', { name: 'Auftrag bearbeiten' }).click(); await page.getByLabel('Fahrer', { exact: true }).selectOption({ label: 'Ben Weber' }); await page.getByLabel('Zielort').fill('Bremen'); await page.getByLabel('Datum & Uhrzeit').fill('2027-01-10T11:30'); await page.getByRole('button', { name: 'Speichern', exact: true }).click(); await expect(page.getByText('Ben Weber', { exact: true })).toBeVisible();
+ await page.getByRole('button', { name: 'Stornieren', exact: true }).click(); await page.getByRole('button', { name: 'Auftrag stornieren', exact: true }).click(); await expect(page.getByRole('dialog')).toBeVisible(); await page.getByLabel('Stornogrund').fill('Kunde hat den Transport abgesagt'); await page.getByRole('dialog').screenshot({ path: testInfo.outputPath('cancel-dialog.png') }); await page.getByRole('button', { name: 'Auftrag stornieren', exact: true }).click(); await expect(page.getByText('Kunde hat den Transport abgesagt', { exact: true })).toBeVisible(); await expect(page.getByRole('button', { name: 'Übernahme starten' })).toHaveCount(0); await expect(page.getByRole('button', { name: 'Auftrag bearbeiten' })).toHaveCount(0);
+ await page.reload(); await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('button', { name: /^Aufträge/ }).click(); await page.getByRole('button', { name: 'VO-2048', exact: true }).click(); await expect(page.getByText('Kunde hat den Transport abgesagt', { exact: true })).toBeVisible();
+ await page.getByRole('button', { name: 'Fahrzeuge', exact: true }).click(); const vehicleRow = page.getByRole('row').filter({ has: page.getByRole('button', { name: 'B NEU 2048', exact: true }) }); await expect(vehicleRow.getByText('Verfügbar', { exact: true })).toBeVisible(); await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('button', { name: /^Aufträge/ }).click(); await page.getByRole('button', { name: 'Neuer Auftrag' }).click(); await expect(page.getByLabel('Fahrzeug', { exact: true }).locator('option', { hasText: 'B NEU 2048' })).toHaveCount(1);
+ expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+test('Fahrzeug, Fahrer und Auftrag anlegen', async ({ page }) => {
+ await page.goto('/'); await page.getByRole('button', { name: 'Fahrzeuge', exact: true }).click(); await page.getByRole('button', { name: 'Fahrzeug hinzufügen' }).click();
+ await fillPlate(page, 'M VO 999'); await page.getByLabel('VIN', { exact: true }).fill('WVWZZZ3CZPE999999'); await page.getByLabel('Hersteller', { exact: true }).fill('VW'); await page.getByRole('option', { name: 'Volkswagen', exact: true }).click(); await page.getByLabel('Modell', { exact: true }).fill('Passat'); await page.getByLabel('Farbe').fill('Blau'); await page.getByLabel('Kilometerstand').fill('100'); await page.getByLabel('Standort', { exact: true }).fill('München'); await page.getByRole('button', { name: 'Speichern', exact: true }).click(); await expect(page.getByRole('button', { name: 'M VO 999' })).toBeVisible();
+ await page.getByRole('button', { name: 'Fahrer', exact: true }).click(); await page.getByRole('button', { name: 'Fahrer hinzufügen' }).click(); await page.getByLabel('Name', { exact: true }).fill('Jonas Test'); await page.getByLabel('E-Mail').fill('jonas@example.com'); await page.getByLabel('Telefon', { exact: true }).fill('+49 1234'); await page.getByLabel('Führerschein gültig bis').fill('2030-12-31'); await page.getByRole('button', { name: 'Speichern', exact: true }).click(); await expect(page.getByRole('heading', { name: 'Jonas Test' })).toBeVisible();
+ await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('button', { name: /^Aufträge/ }).click(); await page.getByRole('button', { name: 'Neuer Auftrag' }).click(); await page.getByLabel('Fahrzeug', { exact: true }).selectOption({ label: 'M VO 999 · Volkswagen Passat' }); await page.getByLabel('Fahrer', { exact: true }).selectOption({ label: 'Jonas Test' }); await page.getByLabel('Abholort').fill('München'); await page.getByLabel('Zielort').fill('Berlin'); await page.getByLabel('Datum & Uhrzeit').fill('2027-05-01T10:00'); await page.getByRole('button', { name: 'Speichern', exact: true }).click(); await expect(page.getByText('M VO 999 · Volkswagen Passat')).toBeVisible();
+});
+
+
+
+
+
+

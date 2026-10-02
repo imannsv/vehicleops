@@ -1,0 +1,2 @@
+import { MetadataRoute } from 'next';
+export default function manifest(): MetadataRoute.Manifest { return { name: 'VehicleOps', short_name: 'VehicleOps', description: 'Disposition und dokumentierte Fahrzeugübergaben', start_url: '/', display: 'standalone', background_color: '#f5f7fa', theme_color: '#142c49', lang: 'de', icons: [{ src: '/icon-192.png', sizes: '192x192', type: 'image/png' }, { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' }] }; }

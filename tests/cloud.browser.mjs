@@ -1,0 +1,49 @@
+import{execFileSync}from'node:child_process';
+import{createClient}from'@supabase/supabase-js';
+import{chromium,devices,expect}from'@playwright/test';
+import sharp from 'sharp';
+import {readFile} from 'node:fs/promises';
+const s=JSON.parse(execFileSync('npx.cmd',['supabase','status','--output','json'],{encoding:'utf8',shell:true,stdio:['ignore','pipe','pipe']}));
+const admin=createClient(s.API_URL,s.SERVICE_ROLE_KEY,{auth:{persistSession:false}});
+const ok=r=>{if(r.error)throw new Error(r.error.message);return r.data;};
+const fixtures=[];let org;const browser=await chromium.launch();const ownerCtx=await browser.newContext(),driverCtx=await browser.newContext({...devices['Pixel 7']});
+async function account(){const email='browser-'+crypto.randomUUID()+'@example.com',password=crypto.randomUUID()+'aA1!';const user=ok(await admin.auth.admin.createUser({email,password,email_confirm:true})).user;fixtures.push(user);return{email,password,user};}
+async function login(page,account){const email=page.getByLabel('E-Mail',{exact:true});if(await email.getAttribute('readonly')!==null)await expect(email).toHaveValue(account.email);else await email.fill(account.email);await page.getByLabel('Passwort',{exact:true}).fill(account.password);await page.getByRole('button',{name:'Anmelden',exact:true}).click();}
+try{
+ const owner=await account(),driver=await account(),ownerPage=await ownerCtx.newPage(),driverPage=await driverCtx.newPage();const errors=[];
+ ownerPage.on('pageerror',e=>errors.push(e.message));driverPage.on('pageerror',e=>errors.push(e.message));
+ await ownerPage.goto('http://localhost:3000/');await login(ownerPage,owner);await expect(ownerPage.getByRole('heading',{name:'Organisation einrichten'})).toBeVisible();
+ const name='Cloud browser '+owner.user.id;await ownerPage.getByLabel('Unternehmen').fill(name);await ownerPage.getByLabel('Dein Name').fill('Browser Owner');await ownerPage.getByRole('button',{name:'Organisation erstellen'}).click();await expect(ownerPage.getByRole('heading',{name:'Alles bereit für die nächste Fahrt.'})).toBeVisible();
+ org=ok(await admin.from('organizations').select('id').eq('name',name).single()).id;
+ await ownerPage.getByRole('button',{name:'Organisation',exact:true}).click();await ownerPage.getByLabel('Name',{exact:true}).fill('Browser Driver');await ownerPage.getByLabel('E-Mail',{exact:true}).fill(driver.email);await ownerPage.getByRole('button',{name:'Einladungslink erstellen'}).click();const invite=await ownerPage.getByLabel('Einladungslink',{exact:true}).inputValue();
+ await driverPage.goto(invite);await expect(driverPage.getByText(/Du wurdest zu/)).toBeVisible();await login(driverPage,driver);await driverPage.getByRole('button',{name:'Einladung annehmen'}).click();await expect(driverPage.getByRole('heading',{name:'Alles bereit für die nächste Fahrt.'})).toBeVisible();await expect(driverPage.getByRole('button',{name:'Neuer Auftrag'})).toHaveCount(0);
+ const driverId=crypto.randomUUID(),otherDriver=crypto.randomUUID(),vehicleId=crypto.randomUUID(),otherVehicle=crypto.randomUUID(),orderId=crypto.randomUUID();
+ ok(await admin.from('drivers').insert([{id:driverId,organization_id:org,name:'Browser Driver',email:driver.email,phone:'123',license_valid_until:'2030-12-31',user_id:driver.user.id},{id:otherDriver,organization_id:org,name:'Other Driver',email:'other@example.com',phone:'123',license_valid_until:'2030-12-31'}]));
+ ok(await admin.from('vehicles').insert([{id:vehicleId,organization_id:org,plate:'B CLOUD 1',vin:'WVWZZZ3CZPE888888',make:'VW',model:'Golf',color:'Blue',mileage:100,location:'Berlin'},{id:otherVehicle,organization_id:org,plate:'B CLOUD 2',vin:'WVWZZZ3CZPE888889',make:'VW',model:'Golf',color:'Blue',mileage:100,location:'Berlin'}]));
+ ok(await admin.from('orders').insert([{id:orderId,organization_id:org,reference:'CLOUD-OWN',vehicle_id:vehicleId,driver_id:driverId,pickup:'Berlin',destination:'Hamburg',scheduled_at:'2027-01-01T10:00:00Z'},{id:crypto.randomUUID(),organization_id:org,reference:'CLOUD-OTHER',vehicle_id:otherVehicle,driver_id:otherDriver,pickup:'Berlin',destination:'Hamburg',scheduled_at:'2027-01-01T10:00:00Z'}]));
+ await ownerPage.getByRole('button',{name:'Aktualisieren',exact:true}).click();await ownerPage.getByRole('button',{name:'Fahrzeuge',exact:true}).click();await ownerPage.getByRole('button',{name:'B CLOUD 1',exact:true}).click();await ownerPage.getByRole('button',{name:'Fahrzeug bearbeiten'}).click();await ownerPage.getByLabel('Ausführung / Variante (optional)').fill('Variant');await ownerPage.getByLabel('Ausstattung suchen').fill('CarPlay');await ownerPage.getByLabel('Apple CarPlay',{exact:true}).check();await ownerPage.getByLabel('Zusätzliche Ausstattung (optional)').fill('Cloud Sonderumbau');await ownerPage.getByRole('button',{name:'Speichern',exact:true}).click();await expect(ownerPage.getByRole('dialog')).toHaveCount(0);await expect(ownerPage.getByText('Apple CarPlay',{exact:true})).toBeVisible();
+ const extras=ok(await admin.from('vehicles').select('equipment,variant,equipment_notes').eq('id',vehicleId).single());expect(extras).toEqual({equipment:['CARPLAY'],variant:'Variant',equipment_notes:'Cloud Sonderumbau'});
+ const ownerSession=await ownerPage.evaluate(()=>Object.entries(localStorage).find(([key])=>key.startsWith('sb-')&&key.endsWith('-auth-token'))?.[1]);const driverSession=await driverPage.evaluate(()=>Object.entries(localStorage).find(([key])=>key.startsWith('sb-')&&key.endsWith('-auth-token'))?.[1]);
+ const token=session=>JSON.parse(session).access_token;
+ const noauth=await ownerPage.request.post('http://localhost:3000/api/vin',{data:{vin:'WVWZZZ3CZPE123456',organization_id:org}});expect(noauth.status()).toBe(401);
+ const unauthorized=await driverPage.request.post('http://localhost:3000/api/vin',{headers:{Authorization:'Bearer '+token(driverSession)},data:{vin:'WVWZZZ3CZPE123456',organization_id:org}});expect(unauthorized.status()).toBe(403);
+ const wrongOrg=await ownerPage.request.post('http://localhost:3000/api/vin',{headers:{Authorization:'Bearer '+token(ownerSession)},data:{vin:'WVWZZZ3CZPE123456',organization_id:crypto.randomUUID()}});expect(wrongOrg.status()).toBe(403);
+ const decode=await ownerPage.request.post('http://localhost:3000/api/vin',{headers:{Authorization:'Bearer '+token(ownerSession)},data:{vin:'5UXWX7C50BA000000',organization_id:org}});expect(decode.status()).toBe(200);const decoded=await decode.json();expect(decoded.make).toBe('BMW');expect(decoded.model).toBe('');
+ await driverPage.getByRole('button',{name:'Aktualisieren',exact:true}).click();await driverPage.getByRole('navigation',{name:'Hauptnavigation'}).getByRole('button',{name:/^Aufträge/}).click();await expect(driverPage.getByRole('button',{name:'CLOUD-OWN',exact:true})).toBeVisible();await expect(driverPage.getByRole('button',{name:'CLOUD-OTHER',exact:true})).toHaveCount(0);
+ await driverPage.getByRole('button',{name:'CLOUD-OWN',exact:true}).click();await driverPage.getByRole('button',{name:'Übernahme starten'}).click();
+ const photo=await sharp({create:{width:640,height:400,channels:3,background:'#7799bb'}}).jpeg().toBuffer();
+ for(const slot of ['Vorne','Hinten','Links','Rechts','Vorne links','Vorne rechts','Hinten links','Hinten rechts','Innenraum','Tacho'])await driverPage.getByLabel('Foto '+slot,{exact:true}).setInputFiles({name:'cloud.jpg',mimeType:'image/jpeg',buffer:photo});
+ await driverPage.getByLabel('Name der unterzeichnenden Person').fill('Browser Driver');const canvas=driverPage.getByLabel('Unterschrift mit Maus oder Finger zeichnen');await canvas.scrollIntoViewIfNeeded();const box=await canvas.boundingBox();await driverPage.mouse.move(box.x+20,box.y+50);await driverPage.mouse.down();await driverPage.mouse.move(box.x+150,box.y+70,{steps:10});await driverPage.mouse.up();
+ await driverPage.getByRole('button',{name:'Protokoll abschließen'}).click();await expect(driverPage.getByRole('button',{name:'Übergabe starten'})).toBeVisible({timeout:30000});
+ await ownerPage.getByRole('button',{name:'Aktualisieren',exact:true}).click();await ownerPage.getByRole('navigation',{name:'Hauptnavigation'}).getByRole('button',{name:/^Aufträge/}).click();await ownerPage.getByRole('button',{name:'CLOUD-OWN',exact:true}).click();await expect(ownerPage.getByRole('button',{name:'Übergabe starten'})).toBeVisible();const event=ownerPage.waitForEvent('download');await ownerPage.getByRole('button',{name:'PDF',exact:true}).click();const download=await event;expect(download.suggestedFilename()).toBe('CLOUD-OWN-Uebernahme.pdf');
+ const text=(await readFile(await download.path())).toString('latin1');expect(text).toContain('Apple CarPlay');expect(text).toContain('Cloud Sonderumbau');
+ expect(errors).toEqual([]);
+ console.log('PASS: two isolated browser sessions, owner onboarding, invite acceptance, mobile driver scope, real photo uploads, driver protocol finalization and administrator PDF download');
+}finally{
+ await browser.close();
+ if(org){for(const table of ['team_invitations','handover_photos','damages','vehicle_events','handovers','orders','drivers','vehicles','memberships'])ok(await admin.from(table).delete().eq('organization_id',org));const folders=ok(await admin.storage.from('evidence').list(org));for(const order of folders){const handovers=ok(await admin.storage.from('evidence').list(org+'/'+order.name));for(const handover of handovers){const files=ok(await admin.storage.from('evidence').list(org+'/'+order.name+'/'+handover.name));if(files.length)ok(await admin.storage.from('evidence').remove(files.map(f=>org+'/'+order.name+'/'+handover.name+'/'+f.name)));}}ok(await admin.from('organizations').delete().eq('id',org));}
+ for(const u of fixtures)ok(await admin.auth.admin.deleteUser(u.id));
+}
+
+
+
