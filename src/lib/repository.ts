@@ -21,7 +21,7 @@ export async function insertDemo(table: EntityTable, row: Vehicle | Driver | Ord
   if (table === 'vehicles') {
    const v = row as Vehicle;
    validateVehicleExtras(v);
-   if (latest.vehicles.some(other => other.vin === v.vin || other.plate === v.plate)) throw new Error('Kennzeichen oder VIN existiert bereits.');
+   if (latest.vehicles.some(other => other.vin === v.vin || (!!v.plate && other.plate === v.plate))) throw new Error('Kennzeichen oder VIN existiert bereits.');
    latest.vehicles.push({ ...v, revision: 1 });
   } else if (table === 'drivers') latest.drivers.push({ ...row as Driver, revision: 1 });
   else {
@@ -61,14 +61,13 @@ export async function loadCloud(orgId?: string): Promise<Data | null> {
  for (const result of rows) if (result.error) throw new Error(result.error.message);
  const rawHandovers = checked(rows[4]) ?? [];
  const photos = checked(await supabase.from('handover_photos').select('*').eq('organization_id', id).order('sequence')) ?? [];
- const signed = async (path: string) => checked(await supabase!.storage.from('evidence').createSignedUrl(path, 3600))!.signedUrl;
- const handovers = await Promise.all(rawHandovers.map(async h => ({ ...h, snapshot: h.snapshot as unknown as ProtocolSnapshot, signature: await signed(h.signature), photos: await Promise.all(photos.filter(p => p.handover_id === h.id).map(async p => ({ slot: p.slot, path: p.path, url: await signed(p.path) }))) })));
+ const handovers=rawHandovers.map(h=>({...h,snapshot:h.snapshot as unknown as ProtocolSnapshot,photos:photos.filter(p=>p.handover_id===h.id).map(p=>({id:p.id,slot:p.slot,path:p.path,bucket:p.bucket,url:''}))}));
  const invitations = checked(await supabase.from('team_invitations').select('id,organization_id,email,name,role,created_at,expires_at,accepted_at,revoked_at').eq('organization_id', id)) ?? [];
- const extras=await Promise.all(['vehicle_holders','vehicle_assets','vehicle_keys','key_movements','fleet_sites','parking_spaces','vehicle_movements'].map(table=>supabase!.from(table as 'vehicle_keys').select('*').eq('organization_id',id)));
+ const extras=await Promise.all(['vehicle_holders','vehicle_assets','vehicle_keys','key_movements','fleet_sites','parking_spaces','vehicle_movements','stock_events'].map(table=>supabase!.from(table as 'vehicle_keys').select('*').eq('organization_id',id)));
  for(const result of extras)if(result.error)throw new Error(result.error.message);
- return { organization, members: rows[0].data, vehicles: rows[1].data, drivers: rows[2].data, orders: rows[3].data, handovers, damages: rows[5].data, events: rows[6].data, invitations,holders:extras[0].data,assets:extras[1].data,keys:extras[2].data,key_movements:extras[3].data,sites:extras[4].data,spaces:extras[5].data,movements:extras[6].data } as unknown as Data;
+ return { organization, members: rows[0].data, vehicles: rows[1].data, drivers: rows[2].data, orders: rows[3].data, handovers, damages: rows[5].data, events: rows[6].data, invitations,holders:extras[0].data,assets:extras[1].data,keys:extras[2].data,key_movements:extras[3].data,sites:extras[4].data,spaces:extras[5].data,movements:extras[6].data,stock_events:extras[7].data } as unknown as Data;
 }
-export async function insertCloud(table: 'vehicles' | 'drivers' | 'orders', row: Vehicle | Driver | Order) { if (!supabase) throw new Error('Supabase fehlt.'); if (table === 'vehicles') checked(await supabase.from(table).insert(row as Vehicle)); else if (table === 'drivers') checked(await supabase.from(table).insert(row as Driver)); else checked(await supabase.from(table).insert(row as Order)); }
+export async function insertCloud(table: 'vehicles' | 'drivers' | 'orders', row: Vehicle | Driver | Order) { if (!supabase) throw new Error('Supabase fehlt.'); if (table === 'vehicles') checked(await supabase.from(table).insert({...row as Vehicle,stock_number:(row as Vehicle).stock_number??''})); else if (table === 'drivers') checked(await supabase.from(table).insert(row as Driver)); else checked(await supabase.from(table).insert(row as Order)); }
 export async function updateEntity(data: Data, table: EntityTable, row: Vehicle | Driver | Order, expectedRevision: number, cloud: boolean): Promise<Data | null> {
  if (cloud) {
   if (!supabase) throw new Error('Supabase fehlt.');

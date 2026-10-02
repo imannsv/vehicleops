@@ -8,11 +8,11 @@ export function inventoryState(data:Data,vehicle:Vehicle):'available'|'reserved'
  const order=data.orders.find(o=>o.vehicle_id===vehicle.id&&isActiveOrder(o));
  return order?.status==='in_transit'?'in_transit':order?'reserved':'available';
 }
-export const inventoryLabels={available:'Verfügbar',reserved:'Reserviert',in_transit:'In Transport'};
+export const inventoryLabels={available:'Ohne Transportauftrag',reserved:'Auftrag zugewiesen',in_transit:'In Transport'};
 export interface InventoryFilters {search:string;site:string;space:string;availability:string;transport:string}
 export function filterInventory(data:Data,filter:InventoryFilters) {
  return data.vehicles.filter(v=>{
-  const state=inventoryState(data,v),query=`${v.plate} ${v.vin} ${v.make} ${v.model} ${positionLabel(data,v)}`.toLowerCase();
+  const state=inventoryState(data,v),query=`${v.plate??''} ${v.stock_number??''} ${v.generation??''} ${v.vin} ${v.make} ${v.model} ${positionLabel(data,v)}`.toLowerCase();
   return query.includes(filter.search.trim().toLowerCase())&&(!filter.site||(filter.site==='unassigned'?!v.site_id:v.site_id===filter.site))&&(!filter.space||(filter.space==='none'?!v.parking_space_id:v.parking_space_id===filter.space))&&(!filter.availability||(filter.availability==='available'?state==='available':state!=='available'))&&(!filter.transport||(filter.transport==='in_transit'?state==='in_transit':state!=='in_transit'));
  });
 }

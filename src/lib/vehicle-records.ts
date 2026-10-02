@@ -11,11 +11,11 @@ export function validateVehicleDates(vehicle: Vehicle) {
  if (vehicle.build_year != null && (!Number.isInteger(vehicle.build_year) || vehicle.build_year < 1886 || vehicle.build_year > new Date().getFullYear()+1)) throw new Error('Baujahr ist ungültig.');
  if (vehicle.first_registration) {const date=new Date(vehicle.first_registration);if(!/^\d{4}-\d{2}-\d{2}$/.test(vehicle.first_registration)||Number.isNaN(date.getTime())||date.toISOString().slice(0,10)!==vehicle.first_registration||vehicle.first_registration>new Date().toISOString().slice(0,10))throw new Error('Erstzulassung ist ungültig.');}
 }
-export async function saveVehicleRecord(data:Data,vehicle:Vehicle,holder:VehicleHolder,revision:number,cloud:boolean):Promise<Data> {
+export async function saveVehicleRecord(data:Data,vehicle:Vehicle,holder:VehicleHolder,revision:number,cloud:boolean,stockReason=''):Promise<Data> {
  validateVehicleDates(vehicle);
  if (holder.name.length>120 || holder.address.length>1000 || holder.contact.length>240) throw new Error('Halterangaben sind zu lang.');
  if(cloud) {
-  const result=await supabase!.rpc('save_vehicle_record',{p_id:vehicle.id,p_org:data.organization.id,p_revision:revision,p_values:vehicle as unknown as Json,p_holder:holder as unknown as Json,p_holder_revision:holder.revision});
+  const result=await supabase!.rpc('save_vehicle_record',{p_id:vehicle.id,p_org:data.organization.id,p_revision:revision,p_values:{...vehicle,stock_reason:stockReason} as unknown as Json,p_holder:holder as unknown as Json,p_holder_revision:holder.revision});
   if(result.error)throw new Error(result.error.message);
   return (await loadCloud(data.organization.id))!;
  }
@@ -23,8 +23,8 @@ export async function saveVehicleRecord(data:Data,vehicle:Vehicle,holder:Vehicle
   const existing=latest.holders?.find(h=>h.vehicle_id===vehicle.id);
   if((existing?.revision??0)!==holder.revision)throw new Error('Halterdaten wurden inzwischen geändert. Bitte neu laden.');
   let next=latest;
-  if(revision)next=applyEntityUpdate(latest,'vehicles',vehicle,revision);
-  else {if(latest.vehicles.some(v=>v.id===vehicle.id||v.vin===vehicle.vin||v.plate===vehicle.plate))throw new Error('Kennzeichen oder VIN existiert bereits.');next={...latest,vehicles:[...latest.vehicles,{...vehicle,revision:1,keys_revision:1,keys_recorded:false}]};}
+  if(revision){next=applyEntityUpdate(latest,'vehicles',vehicle,revision);const old=latest.vehicles.find(v=>v.id===vehicle.id)!;if((old.inventory_kind??'unassigned')!==(vehicle.inventory_kind??'unassigned')||(old.inventory_status??null)!==(vehicle.inventory_status??null)){if(!stockReason.trim())throw Error('Bestandsänderung benötigt einen Anlass');next={...next,stock_events:[...(next.stock_events??[]),{id:crypto.randomUUID(),organization_id:latest.organization.id,vehicle_id:vehicle.id,previous_kind:old.inventory_kind??'unassigned',next_kind:vehicle.inventory_kind??'unassigned',previous_status:old.inventory_status??null,next_status:vehicle.inventory_status??null,reason:stockReason,actor_name:latest.members[0]?.name??'Administrator',created_at:new Date().toISOString()}]};}}
+  else {if(latest.vehicles.some(v=>v.id===vehicle.id||v.vin===vehicle.vin||(!!vehicle.plate&&v.plate===vehicle.plate)))throw new Error('Kennzeichen oder VIN existiert bereits.');next={...latest,vehicles:[...latest.vehicles,{...vehicle,stock_number:'FZ-'+String(Math.max(0,...latest.vehicles.map(v=>Number(v.stock_number?.slice(3))||0))+1).padStart(6,'0'),revision:1,keys_revision:1,keys_recorded:false}]};}
   if(!revision)next=recordMovement(next,undefined,vehicle,'initial','Fahrzeug neu erfasst');
   return {...next,holders:[...(latest.holders??[]).filter(h=>h.vehicle_id!==vehicle.id),{...holder,revision:holder.revision+1}]};
  });
@@ -77,4 +77,4 @@ export async function uploadAsset(data:Data,vehicle:Vehicle,file:File,kind:Vehic
  const url=await fileData(file);progress(100);return mutateDemo(latest=>({...latest,assets:[...(latest.assets??[]),{id,vehicle_id:vehicle.id,organization_id:vehicle.organization_id,kind,name,path,mime:file.type,size:file.size,created_at:new Date().toISOString(),url}]}));
 }
 export async function assetUrl(asset:VehicleAsset,cloud:boolean) {if(!cloud)return asset.url!;const result=await supabase!.storage.from('vehicle-files').createSignedUrl(asset.path,300);if(result.error)throw new Error(result.error.message);return result.data.signedUrl;}
-export async function removeAsset(data:Data,asset:VehicleAsset,cloud:boolean):Promise<Data>{if(cloud){const result=await supabase!.rpc('remove_vehicle_asset',{p_id:asset.id});if(result.error)throw new Error(result.error.message);const removed=await supabase!.storage.from('vehicle-files').remove([result.data]);if(removed.error)throw new Error('Eintrag entfernt; Dateibereinigung fehlgeschlagen. '+removed.error.message);return(await loadCloud(data.organization.id))!;}return mutateDemo(latest=>({...latest,assets:(latest.assets??[]).filter(a=>a.id!==asset.id)}));}
+export async function removeAsset(data:Data,asset:VehicleAsset,cloud:boolean):Promise<Data>{if(cloud){const result=await supabase!.rpc('remove_vehicle_asset',{p_id:asset.id});if(result.error)throw new Error(result.error.message);const removed=await supabase!.storage.from('vehicle-files').remove([result.data]);if(removed.error)throw new Error('Eintrag entfernt; Dateibereinigung fehlgeschlagen. '+removed.error.message);return(await loadCloud(data.organization.id))!;}return mutateDemo(latest=>({...latest,assets:(latest.assets??[]).filter(a=>a.id!==asset.id),vehicles:latest.vehicles.map(v=>v.cover_kind==='asset'&&v.cover_id===asset.id?{...v,cover_kind:null,cover_id:null,revision:(v.revision??1)+1}:v)}));}

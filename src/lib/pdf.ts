@@ -1,10 +1,12 @@
+import {exportModernProtocol} from './pdf-modern';
 import { jsPDF } from 'jspdf';
 import { Data, Handover, protocolSnapshot, shots } from './domain';
 import { equipmentLabel } from './vehicle-catalog';
 async function imageData(url: string) { if (url.startsWith('data:')) return url; const blob = await (await fetch(url)).blob(); return new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result as string); reader.onerror = reject; reader.readAsDataURL(blob); }); }
 export async function exportProtocol(data: Data, h: Handover) {
+ if(h.version===2)return exportModernProtocol(data,h);
  const snapshot = h.snapshot ?? protocolSnapshot(data, data.orders.find(o => o.id === h.order_id)!);
- const { order, vehicle, driver } = snapshot;
+ const vehicle=snapshot.vehicle,order=snapshot.order!,driver=snapshot.driver!;
  const pdf = new jsPDF(); let y = 22;
  const line = (text: string, size = 11) => { pdf.setFontSize(size); const lines = pdf.splitTextToSize(text, 170); if (y + lines.length * 6 > 274) { pdf.addPage(); y = 22; } pdf.text(lines, 20, y); y += lines.length * 6 + 3; };
  pdf.setTextColor(25, 43, 66);

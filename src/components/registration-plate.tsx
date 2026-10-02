@@ -5,7 +5,7 @@ import { joinPlate, registrationDistrict, splitPlate, PlateParts } from '@/lib/r
 function EuropeBand() {
  return <span className="plate-europe" aria-hidden="true"><svg viewBox="0 0 36 32">{Array.from({length:12},(_,index)=>{const angle=index*Math.PI/6;return <g key={index} transform={'translate('+(18+Math.sin(angle)*10)+','+(16-Math.cos(angle)*10)+')'}><path d="M0-2 0.6-0.6 2-0.6 0.9 0.3 1.3 1.8 0 0.9-1.3 1.8-0.9 0.3-2-0.6-0.6-0.6Z" fill="#ffdc39"/></g>;})}</svg><strong>D</strong></span>;
 }
-export function RegistrationPlate({initial=''}:{initial?:string}) {
+export function RegistrationPlate({initial='',optional=false}:{initial?:string;optional?:boolean}) {
  const id=useId(), parsed=splitPlate(initial);
  const [parts,setParts]=useState<PlateParts>(parsed??{district:'',letters:'',number:'',suffix:''});
  const [free,setFree]=useState(!!initial&&!parsed),[custom,setCustom]=useState(initial);
@@ -25,13 +25,13 @@ export function RegistrationPlate({initial=''}:{initial?:string}) {
  }
  return <div className="span-2 plate-field" role="group" aria-labelledby={id+'-title'}>
   <div className="plate-heading"><span id={id+'-title'}>Kennzeichen</span><button type="button" className="text-button" onClick={switchMode}>{free?'Deutsches Kennzeichen':'Andere Kennzeichen'}</button></div>
-  {free?<label>Vollständiges Kennzeichen<input name="plate" required maxLength={20} value={custom} onChange={e=>setCustom(e.target.value.toUpperCase())} placeholder="Kennzeichen eingeben"/></label>:<>
+  {free?<label>Vollständiges Kennzeichen<input name="plate" required={!optional||!!value} maxLength={20} value={custom} onChange={e=>setCustom(e.target.value.toUpperCase())} placeholder="Kennzeichen eingeben"/></label>:<>
    <div className="registration-plate">
     <EuropeBand/>
-    <input aria-label="Ortskürzel" aria-describedby={id+'-district'} className="plate-district" autoComplete="off" autoCapitalize="characters" spellCheck={false} required maxLength={3} pattern="[A-ZÄÖÜ]{1,3}" placeholder="H" value={parts.district} onChange={e=>change('district',e.target.value)} onPaste={paste}/>
+    <input aria-label="Ortskürzel" aria-describedby={id+'-district'} className="plate-district" autoComplete="off" autoCapitalize="characters" spellCheck={false} required={!optional||!!value} maxLength={3} pattern="[A-ZÄÖÜ]{1,3}" placeholder="H" value={parts.district} onChange={e=>change('district',e.target.value)} onPaste={paste}/>
     <span className="plate-seals" aria-hidden="true"><i/><i/></span>
-    <input aria-label="Kennzeichen-Buchstaben" className="plate-letters" autoComplete="off" autoCapitalize="characters" spellCheck={false} required maxLength={2} pattern="[A-Z]{1,2}" placeholder="AB" value={parts.letters} onChange={e=>change('letters',e.target.value)} onPaste={paste}/>
-    <input aria-label="Kennzeichen-Zahlen" className="plate-number" autoComplete="off" inputMode="numeric" required maxLength={4} pattern="[0-9]{1,4}" placeholder="1234" value={parts.number} onChange={e=>change('number',e.target.value)} onPaste={paste}/>
+    <input aria-label="Kennzeichen-Buchstaben" className="plate-letters" autoComplete="off" autoCapitalize="characters" spellCheck={false} required={!optional||!!value} maxLength={2} pattern="[A-Z]{1,2}" placeholder="AB" value={parts.letters} onChange={e=>change('letters',e.target.value)} onPaste={paste}/>
+    <input aria-label="Kennzeichen-Zahlen" className="plate-number" autoComplete="off" inputMode="numeric" required={!optional||!!value} maxLength={4} pattern="[0-9]{1,4}" placeholder="1234" value={parts.number} onChange={e=>change('number',e.target.value)} onPaste={paste}/>
     {parts.suffix && <span className="plate-suffix" aria-hidden="true">{parts.suffix}</span>}
    </div>
    <input name="plate" type="hidden" value={value}/>

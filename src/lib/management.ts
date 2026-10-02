@@ -6,7 +6,7 @@ export type EntityTable = 'vehicles' | 'drivers' | 'orders';
 export const conflictMessage = 'Dieser Datensatz wurde inzwischen geändert. Bitte neu laden und die Änderung erneut prüfen.';
 export function scheduledDay(value: string) { return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date(value)); }
 export function upgradeDemo(data: Data): Data {
-  return { ...data, invitations: data.invitations ?? [], vehicles: data.vehicles.map(v => ({ ...v, revision: v.revision ?? 1 })), drivers: data.drivers.map(d => ({ ...d, revision: d.revision ?? 1 })), orders: data.orders.map(o => ({ ...o, revision: o.revision ?? 1 })), handovers: data.handovers.map(h => ({ ...h, snapshot: h.snapshot ?? protocolSnapshot(data, data.orders.find(o => o.id === h.order_id)!) })) };
+  return { ...data, invitations: data.invitations ?? [], vehicles: data.vehicles.map((v,i) => ({ ...v,stock_number:v.stock_number??'FZ-'+String(i+1).padStart(6,'0'), revision: v.revision ?? 1 })), drivers: data.drivers.map(d => ({ ...d, revision: d.revision ?? 1 })), orders: data.orders.map(o => ({ ...o, revision: o.revision ?? 1 })), handovers: data.handovers.map(h => ({ ...h, snapshot: h.snapshot ?? protocolSnapshot(data, data.orders.find(o => o.id === h.order_id)!) })) };
 }
 function event(data: Data, vehicle_id: string, order_id: string | null, description: string): Event {
   return { id: crypto.randomUUID(), organization_id: data.organization.id, vehicle_id, order_id, description, created_at: new Date().toISOString() };
@@ -19,10 +19,10 @@ export function applyEntityUpdate(data: Data, table: EntityTable, row: Vehicle |
   if (table === 'vehicles') {
     const previous = old as Vehicle, next = row as Vehicle;
     validateVehicleExtras(next);
-    if (!next.plate.trim() || !next.make.trim() || !next.model.trim() || !next.color.trim() || !next.location.trim()) throw new Error('Bitte alle Fahrzeugfelder ausfüllen.');
+    if (!next.make.trim() || !next.model.trim() || !next.color.trim() || !next.location.trim()) throw new Error('Bitte alle Fahrzeugfelder ausfüllen.');
     if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(next.vin)) throw new Error('VIN muss 17 gültige Zeichen enthalten.');
-    if (data.vehicles.some(v => v.id !== row.id && (v.plate === next.plate || v.vin === next.vin))) throw new Error('Kennzeichen oder VIN existiert bereits.');
-    const floor = Math.max(0, ...data.handovers.filter(h => (h.snapshot?.vehicle.id ?? data.orders.find(o => o.id === h.order_id)?.vehicle_id) === row.id).map(h => h.mileage));
+    if (data.vehicles.some(v => v.id !== row.id && ((!!next.plate && v.plate === next.plate) || v.vin === next.vin))) throw new Error('Kennzeichen oder VIN existiert bereits.');
+    const floor = Math.max(0, ...data.handovers.filter(h => (h.vehicle_id ?? h.snapshot?.vehicle.id ?? data.orders.find(o => o.id === h.order_id)?.vehicle_id) === row.id).map(h => h.mileage));
     if (!Number.isSafeInteger(next.mileage) || next.mileage < floor) throw new Error(`Kilometerstand muss mindestens ${floor} km betragen.`);
     if (data.orders.some(o => o.vehicle_id === row.id && o.status === 'in_transit') && (next.mileage !== previous.mileage || next.location !== previous.location)) throw new Error('Während des Transports werden Kilometerstand und Standort durch das Protokoll aktualisiert.');
     const updated={...previous,...next,revision,...(previous.location!==next.location?{site_id:null,parking_space_id:null}:{})};

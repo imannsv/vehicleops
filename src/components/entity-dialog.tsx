@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { Data, Driver, Order, Vehicle, isActiveOrder } from '@/lib/domain';
+import {vehicleTitle,vehicleIdentity} from '@/lib/company';
 import { VehicleFields } from './vehicle-fields';
 export type DialogKind = 'vehicle' | 'driver' | 'order' | 'cancel';
 export function EntityDialog({ kind, initial, data, cloud, busy, error, onClose, onSubmit }: {
@@ -45,11 +46,11 @@ export function EntityDialog({ kind, initial, data, cloud, busy, error, onClose,
         {cloud && <label className="span-2">Teammitglied (optional)<select name="user_id" defaultValue={driver?.user_id ?? ''}><option value="">Noch nicht verknüpft</option>{data.members.filter(m => m.role === 'driver').map(m => <option key={m.id} value={m.user_id}>{m.name}</option>)}</select></label>}
       </>}
       {kind === 'order' && <>
-        <label className="span-2">Fahrzeug<select aria-label="Fahrzeug" name="vehicle_id" required defaultValue={order?.vehicle_id ?? ''} disabled={inTransit}><option value="">Fahrzeug auswählen</option>{data.vehicles.filter(v => v.id === order?.vehicle_id || !data.orders.some(o => o.vehicle_id === v.id && isActiveOrder(o))).map(v => <option key={v.id} value={v.id}>{v.plate} · {v.make} {v.model}</option>)}</select></label>
+        <label className="span-2">Fahrzeug<select aria-label="Fahrzeug" name="vehicle_id" required defaultValue={order?.vehicle_id ?? ''} disabled={inTransit}><option value="">Fahrzeug auswählen</option>{data.vehicles.filter(v => v.id === order?.vehicle_id || !data.orders.some(o => o.vehicle_id === v.id && isActiveOrder(o))).map(v => <option key={v.id} value={v.id}>{vehicleTitle(v)} · {vehicleIdentity(v)}</option>)}</select></label>
         {inTransit && <input type="hidden" name="vehicle_id" value={order!.vehicle_id} />}
         <label className="span-2">Fahrer<select aria-label="Fahrer" name="driver_id" required defaultValue={order?.driver_id ?? ''}><option value="">Fahrer auswählen</option>{data.drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
         <label>Abholort<input name="pickup" required defaultValue={order?.pickup} readOnly={inTransit} /></label><label>Zielort<input name="destination" required defaultValue={order?.destination} /></label>
-        <label className="span-2">Datum & Uhrzeit<input name="scheduled_at" type="datetime-local" required defaultValue={scheduled} /></label><label className="span-2">Ansprechpartner<input name="contact" placeholder="Name und Telefonnummer" defaultValue={order?.contact} /></label>
+        <label className="span-2">Transportkennzeichen (optional)<input name="transport_plate" maxLength={40} defaultValue={order?.transport_plate??''} placeholder="Verwendetes Kennzeichen für diesen Transport"/></label><label className="span-2">Datum & Uhrzeit<input name="scheduled_at" type="datetime-local" required defaultValue={scheduled} /></label><label className="span-2">Ansprechpartner<input name="contact" placeholder="Name und Telefonnummer" defaultValue={order?.contact} /></label>
       </>}
       {kind === 'cancel' && <label className="span-2">Stornogrund<textarea name="reason" required maxLength={1000} placeholder="Warum wird der Auftrag storniert?" /></label>}
     </div><div className="modal-actions"><button type="button" className="secondary" disabled={busy} onClick={onClose}>Abbrechen</button><button className={kind === 'cancel' ? 'danger' : 'primary'} disabled={busy}>{busy ? 'Wird gespeichert …' : kind === 'cancel' ? 'Auftrag stornieren' : 'Speichern'}</button></div></fieldset></form>
