@@ -6,6 +6,8 @@ Erster lauffähiger MVP einer B2B-Plattform für Fahrzeugüberführungen, Autoh�
 
 Das Projekt wird in [imannsv/vehicleops](https://github.com/imannsv/vehicleops) entwickelt und über das Vercel-Projekt `imanabi/vehicleops` veröffentlicht. Änderungen auf `main` starten ein Produktionsdeployment; andere Branches erhalten Previews. GitHub Actions prüft den Build und die Anwendung. Details und Wiederherstellung: [Deployment](docs/DEPLOYMENT.md).
 
+**Live-App: [vehicleops-six.vercel.app](https://vehicleops-six.vercel.app)**. Anmeldung mit dem bestehenden VehicleOps-Konto; lokale und öffentliche App verwenden dieselbe Supabase-Datenbank.
+
 ## Lokal starten
 
 Voraussetzung: Node.js 24 und npm.

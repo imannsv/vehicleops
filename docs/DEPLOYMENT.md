@@ -2,6 +2,8 @@
 
 Das Arbeitsrepository ist [imannsv/vehicleops](https://github.com/imannsv/vehicleops). Die App liegt direkt im Repository-Hauptverzeichnis.
 
+Produktionsadresse: **[vehicleops-six.vercel.app](https://vehicleops-six.vercel.app)**. Vercel-Projekt: [Dashboard](https://vercel.com/imanabi/vehicleops).
+
 ## Änderungen veröffentlichen
 
 Für Änderungen einen Branch anlegen und einen Pull Request nach `main` öffnen. GitHub Actions prüft Lint, Fachlogik, Typen, Produktionsbuild und die Browserabläufe auf Desktop und Mobilgeräten. Vercel erzeugt für Branches eine Preview und veröffentlicht `main` als Produktion. Ein direkter Push nach `main` ist ebenfalls möglich und startet dieselben Prüfungen.
@@ -25,13 +27,15 @@ Previews sind mit der bestehenden Supabase-Datenbank verbunden. Angemeldete Pers
 ## Live-Prüfung
 
 ```powershell
-$env:VEHICLEOPS_BASE_URL='https://DEINE-PRODUKTIONSADRESSE'
+$env:VEHICLEOPS_BASE_URL='https://vehicleops-six.vercel.app'
 node tests/cloud.smoke.mjs
 ```
 
 Die Prüfung liest die lokale Cloud-Konfiguration, überprüft Anmeldung und Registrierung, die geschützte VIN-Route und die Sperre anonymer Datenzugriffe. Sie legt keine Benutzer oder Fahrzeuge an. Ohne `VEHICLEOPS_BASE_URL` wird localhost geprüft.
 
-Supabase Authentication muss die Produktionsadresse als Site URL und erlaubtes Redirect-Ziel enthalten. localhost für die lokale Entwicklung beibehalten. Neue Preview-Adressen nur bei Bedarf als erlaubte Auth-Redirects ergänzen.
+Supabase Authentication verwendet `https://vehicleops-six.vercel.app` als Site URL. Erlaubte Redirects sind die Produktionsadresse und `http://localhost:3000`, jeweils mit `/` und `/**`, damit auch Einladungsparameter funktionieren. Diese Einstellungen wurden im Dashboard gespeichert und geprüft. Neue Preview-Adressen nur bei Bedarf als erlaubte Auth-Redirects ergänzen.
+
+![Gespeicherte Auth-Adressen](auth-urls.png)
 
 ## Datenbankänderungen und Wiederherstellung
 
