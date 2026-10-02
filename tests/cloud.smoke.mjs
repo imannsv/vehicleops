@@ -1,5 +1,6 @@
 import{readFileSync}from'node:fs';import{createClient}from'@supabase/supabase-js';import{chromium,expect}from'@playwright/test';
 const baseURL=new URL(process.env.VEHICLEOPS_BASE_URL||'http://localhost:3000/').origin;
+const mobileImport=await fetch(baseURL+'/api/mobile-stock',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});if(mobileImport.status!==401)throw new Error('Anonymous mobile.de import endpoint must return 401');
 const vars=Object.fromEntries(readFileSync('.env.local','utf8').trim().split(/\r?\n/).map(l=>l.split(/=(.*)/s).slice(0,2)));
 const client=createClient(vars.NEXT_PUBLIC_SUPABASE_URL,vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false}});
 const preview=await client.rpc('preview_team_invitation',{p_token:'invalid'});if(!preview.error?.message.includes('Einladung ist ungültig'))throw new Error('Cloud invitation endpoint unavailable');

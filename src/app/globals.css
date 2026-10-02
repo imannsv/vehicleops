@@ -4,6 +4,13 @@
 .search.vehicle-search input { min-width:0; flex:1; }
 .vehicle-search input::-webkit-search-cancel-button { appearance:none; }
 .vehicle-search>svg,.vehicle-search>button { flex-shrink:0; }
+.import-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin:24px 0; }
+.import-card { border:1px solid var(--line); border-radius:8px; padding:18px; min-width:0; }
+.import-card .section-heading { flex-wrap:wrap; margin-bottom:12px; }
+.import-card .checkbox-label { margin-top:16px; flex-direction:row; align-items:flex-start; }
+.import-card .checkbox-label input { flex-shrink:0; margin-top:3px; }
+.import-errors { color:#a23535; font-size:12px; padding-left:18px; }
+@media(max-width:800px) { .import-grid { grid-template-columns:1fr; } }
 :root { --navy:#142c49; --ink:#192b42; --blue:#245de8; --muted:#697b91; --line:#e3e8ef; --surface:#f5f7fa; }
 * { box-sizing:border-box; }
 body { margin:0; color:var(--ink); background:var(--surface); font-family:"Segoe UI",Arial,sans-serif; font-size:14px; line-height:1.5; }

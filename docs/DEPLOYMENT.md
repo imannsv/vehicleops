@@ -43,6 +43,14 @@ Neue SQL-Migrationen gehören nach `supabase/migrations`. Git-Pushes wenden sie 
 
 Bei einem fehlerhaften App-Deployment kann im Vercel-Dashboard ein vorheriger erfolgreicher Stand wieder zur Produktion werden. Danach die Ursache per Commit beheben. Datenbankmigrationen werden durch einen App-Rollback nicht zurückgenommen.
 
+## mobile.de-Bestandsimport – 2. Oktober 2026
+
+Die lokal geprüfte additive Migration `20261002175214_mobile_stock_import.sql` wurde vor dem App-Deployment im ausgewählten Projekt `nfocyuyuloyjaikkflai` als Cloud-Version `20261002180507` / `mobile_stock_import` angewendet. Dort läuft Postgres 17.11; insgesamt sind nun 13 Migrationen angewendet. Keine bestehenden Fahrzeug- oder Protokolldaten wurden verändert.
+
+Die neuen Tabellen `external_listings` und `platform_import_runs` haben RLS und ausschließlich lesende App-Tabellenrechte. Schreiben erfolgt über die autorisierte atomare Importfunktion. Der API-Abruf verwendet nur den öffentlichen Supabase-Key zur Prüfung der angemeldeten Person und des Unternehmens; es gibt keine neue Service-Role-Variable oder gespeicherte Händlerzugänge. Ältere App-Versionen bleiben mit der Erweiterung kompatibel.
+
+GitHub Actions prüft 61 Fachlogiktests und 48 Desktop-/Mobilabläufe. Der tatsächliche mobile.de-Händlerzugang ist noch nicht geprüft. API-Voraussetzungen, Dateiformat und Grenzen: [MOBILE_IMPORT.md](MOBILE_IMPORT.md).
+
 ## Unternehmensprofil und Protokolle – 2. Oktober 2026
 
 Nach lokaler Prüfung mit leerem Schema und Altbeständen sind drei weitere additive Migrationen im ausgewählten Projekt `nfocyuyuloyjaikkflai` angewendet:

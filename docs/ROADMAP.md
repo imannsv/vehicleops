@@ -11,7 +11,7 @@ Logo und vollständige Firmenangaben mit Revision, Autohaus/Überführer/Kombini
 ## Als Nächstes: Plattformen und Bestandsausbau
 
 1. **Bestandsübersicht – umgesetzt:** feste Standorte, Anschriften, Stellplätze und Bewegungen mit Person, Zeitpunkt und Anlass. Filter nach Standort, Stellplatz, Verfügbarkeit und Transportstatus. Freie Angaben bleiben erhalten und werden ausdrücklich zugeordnet. Weitere Schritte: feste Ziele in Aufträgen, Standortrechte und Archivierung. [Bedienung und Datenmodell](INVENTORY.md).
-2. **mobile.de – fest eingeplant:** Händlerbestand importieren, Inserate aus VehicleOps veröffentlichen und aktualisieren. Grundlage ist die offizielle [Seller-API](https://services.mobile.de/docs/seller-api.html). Händlerzugang, Freischaltung, Sandbox und benötigte Berechtigungen vor Umsetzung klären.
+2. **mobile.de – erster Import umgesetzt:** lesender Händlerbestandsabruf und Seller-API-Datei, Vorschau, ausdrückliche VIN-Zuordnung, Dublettenprüfung und atomare Wiederholung. [Bedienung und Grenzen](MOBILE_IMPORT.md). Ein echter Test mit freigeschaltetem Händlerzugang steht aus. Danach Bilder mit Herkunft übernehmen; anschließend Inserate veröffentlichen/aktualisieren und regelmäßige Synchronisation ergänzen. Grundlage ist die offizielle [Seller-API](https://services.mobile.de/docs/seller-api.html).
 3. **AutoScout24:** als zusätzlichen Kanal evaluieren.
 4. **AUTO1/BCA:** Übernahme gekaufter Fahrzeuge einschließlich tatsächlich verfügbarer Daten und Bilder evaluieren. Einkaufsdatenzugriff, Bildnutzungsrechte und Partnerfreigaben zuerst prüfen; kein Zugang wird vorausgesetzt.
 
@@ -24,7 +24,7 @@ Logo und vollständige Firmenangaben mit Revision, Autohaus/Überführer/Kombini
 
 Plattform-IDs ersetzen keine internen Fahrzeug-IDs. Import mit Vorschau und Dublettenprüfung anhand VIN und Plattformreferenz; fehlende oder mehrdeutige Daten benötigen eine Auswahl. Veröffentlichung mit ausdrücklicher Freigabe, versionierten Datenständen, Fehlerstatus und wiederholbaren Jobs. Server verwahren Zugangsdaten. Halteranschriften und private Dokumente sind von Inserat-Exporten ausgeschlossen. Je Plattform eigener Adapter, gemeinsame Zuordnung und Fehlerbehandlung.
 
-Live-Anbindungen, Inseratveröffentlichung und Offline-Sync gehören nicht zur Fahrzeugakten-Iteration.
+Ein lesender mobile.de-Adapter ist vorbereitet und mit kontrollierten Antworten geprüft. Der tatsächliche Händlerzugang, Inseratveröffentlichung und Offline-Sync stehen weiterhin aus.
 
 ## 1. Pilotbetrieb in eigener Supabase-Instanz
 - Öffentliche HTTPS-Adresse und Auth-Redirects konfigurieren; das eigene Cloud-Projekt ist eingerichtet.

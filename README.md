@@ -45,6 +45,7 @@ Die App enthält ein Manifest, PNG-Icons und einen Service Worker mit verständl
 - Abschluss erst bei vollständigem Protokoll, gültigen Werten und nicht sinkendem Kilometerstand.
 - Unveränderliche abgeschlossene Protokolle und PDF-Download mit Firmenlogo, Fotos und zwei Unterschriften; ältere Versionen behalten ihren bisherigen Export.
 - Cloud-Modus mit Passwortanmeldung, Organisationsgründung, vier Rollen, RLS und privatem Storage.
+- mobile.de-Bestandsimport unter Organisation → Anbindungen: lesender API-Abruf oder Seller-API-JSON-Datei, Vorschau, ausdrücklicher VIN-Abgleich und atomarer Import. Der echte Händlerzugangstest steht aus. Siehe [Import und Grenzen](docs/MOBILE_IMPORT.md).
 
 Eine Führerscheingültigkeit ist eine hinterlegte Stammdatenangabe, keine automatisierte Führerscheinkontrolle. Die Unterschrift ist eine gezeichnete Bestätigung, keine qualifizierte elektronische Signatur.
 
@@ -93,7 +94,7 @@ Die dabei ausgegebenen lokalen API-Werte lassen sich in `.env.local` übernehmen
 
 ## Datenmodell und Grenzen
 
-`organizations`, `memberships`, `vehicles`, `drivers`, `orders`, `handovers`, `handover_photos`, `damages`, `vehicle_events`, `team_invitations`, `vehicle_holders`, `vehicle_assets`, `vehicle_keys`, `key_movements`, `fleet_sites`, `parking_spaces`, `vehicle_movements`.
+`organizations`, `memberships`, `vehicles`, `drivers`, `orders`, `handovers`, `handover_photos`, `damages`, `vehicle_events`, `team_invitations`, `vehicle_holders`, `vehicle_assets`, `vehicle_keys`, `key_movements`, `fleet_sites`, `parking_spaces`, `vehicle_movements`, `external_listings`, `platform_import_runs`.
 
 Geschäftsdatensätze sind über `organization_id` getrennt. Zusammengesetzte Fremdschlüssel verhindern mandantenfremde Zuordnungen. Rollen werden aus Mitgliedschaften gelesen. RLS schützt alle öffentlichen Tabellen. Ein atomarer RPC sperrt Auftrag/Fahrzeug, prüft Zustand, zehn Pflichtperspektiven, zusätzliche Innenraumfotos und vorhandene Storage-Dateien und schreibt Protokoll, Schäden, Status und Historie zusammen. Direkte Statusänderungen und Änderungen abgeschlossener Protokolle sind für App-Benutzer gesperrt. Protokollbilder sind privat; die App lädt zeitlich begrenzte signierte URLs. Abgeschlossene Evidenzdateien dürfen App-Benutzer weder ersetzen noch löschen.
 
@@ -117,6 +118,7 @@ node tests/cloud.integration.mjs
 node tests/team.integration.mjs
 node tests/records.integration.mjs
 node tests/inventory.integration.mjs
+node tests/mobile-import.integration.mjs
 Get-Content -Raw tests/database.sql | docker exec -i supabase_db_vehicleops psql -U postgres -d postgres -v ON_ERROR_STOP=1
 npx supabase db advisors --local --type all --level warn --fail-on error
 ```

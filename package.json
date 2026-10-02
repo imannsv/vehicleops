@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run tests/domain.test.ts tests/vehicle.test.ts tests/records.test.ts tests/inventory.test.ts tests/company.test.ts",
+    "test": "vitest run tests/domain.test.ts tests/vehicle.test.ts tests/records.test.ts tests/inventory.test.ts tests/company.test.ts tests/mobile-import.test.ts",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit"
   },

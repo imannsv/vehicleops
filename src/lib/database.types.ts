@@ -61,6 +61,31 @@ isOneToOne: false
       referencedColumns: ["organization_id","user_id"]
     }
                   ]
+                },"external_listings": {
+                  Row: {
+                    "account_id": string,"created_at": string,"environment": string,"id": string,"metadata": NonNullable<Json>,"organization_id": string,"platform": string,"remote_id": string,"source_run": string,"vehicle_id": string
+                  }
+                  Insert: {
+                    "account_id": string,"created_at"?: string,"environment": string,"id"?: string,"metadata"?: NonNullable<Json>,"organization_id": string,"platform"?: string,"remote_id": string,"source_run": string,"vehicle_id": string
+                  }
+                  Update: {
+                    "account_id"?: string,"created_at"?: string,"environment"?: string,"id"?: string,"metadata"?: NonNullable<Json>,"organization_id"?: string,"platform"?: string,"remote_id"?: string,"source_run"?: string,"vehicle_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "external_listings_source_run_organization_id_fkey"
+      columns: ["source_run","organization_id"]
+isOneToOne: false
+      referencedRelation: "platform_import_runs"
+      referencedColumns: ["id","organization_id"]
+    },{
+      foreignKeyName: "external_listings_vehicle_id_organization_id_fkey"
+      columns: ["vehicle_id","organization_id"]
+isOneToOne: false
+      referencedRelation: "vehicles"
+      referencedColumns: ["id","organization_id"]
+    }
+                  ]
                 },"fleet_sites": {
                   Row: {
                     "address": string,"id": string,"name": string,"organization_id": string,"revision": number
@@ -141,7 +166,7 @@ isOneToOne: false
                     "action": string,"actor_name": string,"created_at": string,"handover_id": string | null,"id": string,"key_id": string,"key_label": string,"location": string,"organization_id": string,"person": string,"vehicle_id": string
                   }
                   Insert: {
-                    "action": string,"actor_name": string,"created_at"?: string,"handover_id"?: string | null,"id"?: string,"key_id": string,"key_label"?: string,"location"?: string,"organization_id": string,"person"?: string,"vehicle_id": string
+                    "action": string,"actor_name": string,"created_at"?: string,"handover_id"?: string | null,"id"?: string,"key_id": string,"key_label": string,"location"?: string,"organization_id": string,"person"?: string,"vehicle_id": string
                   }
                   Update: {
                     "action"?: string,"actor_name"?: string,"created_at"?: string,"handover_id"?: string | null,"id"?: string,"key_id"?: string,"key_label"?: string,"location"?: string,"organization_id"?: string,"person"?: string,"vehicle_id"?: string
@@ -247,6 +272,25 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "fleet_sites"
       referencedColumns: ["id","organization_id"]
+    }
+                  ]
+                },"platform_import_runs": {
+                  Row: {
+                    "account_id": string,"created_at": string,"created_by": string,"created_count": number,"environment": string,"id": string,"linked_count": number,"organization_id": string,"platform": string,"request_hash": string
+                  }
+                  Insert: {
+                    "account_id": string,"created_at"?: string,"created_by": string,"created_count"?: number,"environment": string,"id": string,"linked_count"?: number,"organization_id": string,"platform"?: string,"request_hash": string
+                  }
+                  Update: {
+                    "account_id"?: string,"created_at"?: string,"created_by"?: string,"created_count"?: number,"environment"?: string,"id"?: string,"linked_count"?: number,"organization_id"?: string,"platform"?: string,"request_hash"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "platform_import_runs_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organizations"
+      referencedColumns: ["id"]
     }
                   ]
                 },"protocol_sessions": {
@@ -494,6 +538,9 @@ isOneToOne: false
                            },
 "finalize_protocol":
 { Args: { "p_id": string,"p_values": Json }; Returns: string
+                           },
+"import_mobile_stock":
+{ Args: { "p_id": string,"p_org": string,"p_values": Json }; Returns: Json
                            },
 "manage_team_member":
 { Args: { "p_expected_role": string,"p_id": string,"p_remove": boolean,"p_role": string }; Returns: undefined

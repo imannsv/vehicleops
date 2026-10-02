@@ -1,3 +1,4 @@
+import type {ExternalListing,ImportRun} from './mobile-import-domain';
 export type Role = 'admin' | 'dispatcher' | 'driver' | 'viewer';
 export type Status = 'assigned' | 'in_transit' | 'completed' | 'cancelled';
 export type Kind = 'pickup' | 'delivery';
@@ -6,7 +7,7 @@ export const statusLabels: Record<Status, string> = { assigned: 'Zugewiesen', in
 export type BusinessType = 'dealer'|'transfer'|'combined';
 export type StockStatus = 'stock'|'reserved'|'sold'|'rented';
 export interface CompanyProfile { legal_form?:string;management?:string;street?:string;postal_code?:string;city?:string;country?:string;email?:string;phone?:string;website?:string;tax_number?:string;vat_id?:string;register_court?:string;register_number?:string }
-export interface Organization { id:string; name:string; revision?:number; business_type?:BusinessType; profile?:CompanyProfile; logo_path?:string|null; logo_url?:string }
+export interface Organization { id:string; name:string; revision?:number; business_type?:BusinessType; profile?:CompanyProfile; logo_path?:string|null; logo_url?:string;vehicle_counter?:number }
 export interface StockEvent {id:string;organization_id:string;vehicle_id:string;previous_kind:string;next_kind:string;previous_status:StockStatus|null;next_status:StockStatus|null;reason:string;actor_name:string;created_at:string;handover_id?:string|null}
 export interface Member { id: string; organization_id: string; user_id: string; name: string; role: Role }
 export interface Invitation { id: string; organization_id: string; email: string; name: string; role: Role; created_at: string; expires_at: string; accepted_at: string | null; revoked_at: string | null }
@@ -34,7 +35,7 @@ export interface Position {confirmed?:boolean;location:string;site_id?:string|nu
 export interface ProtocolDraft extends Draft {id:string;purpose:Purpose;parties:Parties;position:Position;transport_plate:string;stock_status:StockStatus|'';stock_confirmed:boolean;company_revision:number;vehicle_revision:number;order_revision:number|null}
 export interface Handover { id: string; organization_id: string; order_id: string|null; vehicle_id?:string; version?:number;request_hash?:string; purpose?:Purpose; parties?:Parties; position?:Position; transport_plate?:string|null; signature_bucket?:string; kind: Kind; mileage: number; fuel: number; signer: string; signature: string; notes: string; created_at: string; photos: Photo[]; snapshot?: ProtocolSnapshot; key_snapshot?: KeySnapshot | null }
 export interface Event { id: string; organization_id: string; vehicle_id: string; order_id: string | null; description: string; created_at: string }
-export interface Data { organization: Organization; members: Member[]; vehicles: Vehicle[]; drivers: Driver[]; orders: Order[]; handovers: Handover[]; damages: Damage[]; events: Event[]; invitations: Invitation[]; holders?: VehicleHolder[]; assets?: VehicleAsset[]; keys?: VehicleKey[]; key_movements?: KeyMovement[]; sites?: FleetSite[]; spaces?: ParkingSpace[]; stock_events?:StockEvent[]; movements?: VehicleMovement[] }
+export interface Data { organization: Organization; members: Member[]; vehicles: Vehicle[]; drivers: Driver[]; orders: Order[]; handovers: Handover[]; damages: Damage[]; events: Event[]; invitations: Invitation[]; holders?: VehicleHolder[]; assets?: VehicleAsset[]; keys?: VehicleKey[]; key_movements?: KeyMovement[]; sites?: FleetSite[]; spaces?: ParkingSpace[]; stock_events?:StockEvent[]; movements?: VehicleMovement[];external_listings?:ExternalListing[];import_runs?:ImportRun[] }
 export interface Draft { mileage: number; fuel: number; signer: string; signature: string; notes: string; photos: Photo[]; damages: { area: string; description: string }[]; keys?: KeyChecklist }
 export function isActiveOrder(order: Order) { return order.status === 'assigned' || order.status === 'in_transit'; }
 export function protocolSnapshot(data: Data, order: Order): ProtocolSnapshot {
