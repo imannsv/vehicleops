@@ -61,6 +61,25 @@ isOneToOne: false
       referencedColumns: ["organization_id","user_id"]
     }
                   ]
+                },"fleet_sites": {
+                  Row: {
+                    "address": string,"id": string,"name": string,"organization_id": string,"revision": number
+                  }
+                  Insert: {
+                    "address"?: string,"id": string,"name": string,"organization_id": string,"revision"?: number
+                  }
+                  Update: {
+                    "address"?: string,"id"?: string,"name"?: string,"organization_id"?: string,"revision"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fleet_sites_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organizations"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"handover_photos": {
                   Row: {
                     "handover_id": string,"id": string,"organization_id": string,"path": string,"sequence": number,"slot": string
@@ -205,6 +224,25 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"parking_spaces": {
+                  Row: {
+                    "id": string,"label": string,"organization_id": string,"revision": number,"site_id": string
+                  }
+                  Insert: {
+                    "id": string,"label": string,"organization_id": string,"revision"?: number,"site_id": string
+                  }
+                  Update: {
+                    "id"?: string,"label"?: string,"organization_id"?: string,"revision"?: number,"site_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "parking_spaces_site_id_organization_id_fkey"
+      columns: ["site_id","organization_id"]
+isOneToOne: false
+      referencedRelation: "fleet_sites"
+      referencedColumns: ["id","organization_id"]
+    }
+                  ]
                 },"team_invitations": {
                   Row: {
                     "accepted_at": string | null,"created_at": string,"created_by": string,"email": string,"expires_at": string,"id": string,"name": string,"organization_id": string,"revoked_at": string | null,"role": string,"token_hash": string
@@ -312,18 +350,55 @@ isOneToOne: false
       referencedColumns: ["id","organization_id"]
     }
                   ]
-                },"vehicles": {
+                },"vehicle_movements": {
                   Row: {
-                    "build_year": number | null,"color": string,"equipment": (string)[],"equipment_notes": string,"first_registration": string | null,"id": string,"keys_recorded": boolean,"keys_revision": number,"location": string,"make": string,"mileage": number,"model": string,"organization_id": string,"plate": string,"revision": number,"variant": string,"vin": string
+                    "actor_name": string,"created_at": string,"from_location": string,"from_site_id": string | null,"from_space_id": string | null,"handover_id": string | null,"id": string,"organization_id": string,"reason": string,"source": string,"to_location": string,"to_site_id": string | null,"to_space_id": string | null,"vehicle_id": string
                   }
                   Insert: {
-                    "build_year"?: number | null,"color": string,"equipment"?: (string)[],"equipment_notes"?: string,"first_registration"?: string | null,"id"?: string,"keys_recorded"?: boolean,"keys_revision"?: number,"location": string,"make": string,"mileage": number,"model": string,"organization_id": string,"plate": string,"revision"?: number,"variant"?: string,"vin": string
+                    "actor_name": string,"created_at"?: string,"from_location": string,"from_site_id"?: string | null,"from_space_id"?: string | null,"handover_id"?: string | null,"id"?: string,"organization_id": string,"reason": string,"source": string,"to_location": string,"to_site_id"?: string | null,"to_space_id"?: string | null,"vehicle_id": string
                   }
                   Update: {
-                    "build_year"?: number | null,"color"?: string,"equipment"?: (string)[],"equipment_notes"?: string,"first_registration"?: string | null,"id"?: string,"keys_recorded"?: boolean,"keys_revision"?: number,"location"?: string,"make"?: string,"mileage"?: number,"model"?: string,"organization_id"?: string,"plate"?: string,"revision"?: number,"variant"?: string,"vin"?: string
+                    "actor_name"?: string,"created_at"?: string,"from_location"?: string,"from_site_id"?: string | null,"from_space_id"?: string | null,"handover_id"?: string | null,"id"?: string,"organization_id"?: string,"reason"?: string,"source"?: string,"to_location"?: string,"to_site_id"?: string | null,"to_space_id"?: string | null,"vehicle_id"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "vehicle_movements_handover_id_organization_id_fkey"
+      columns: ["handover_id","organization_id"]
+isOneToOne: false
+      referencedRelation: "handovers"
+      referencedColumns: ["id","organization_id"]
+    },{
+      foreignKeyName: "vehicle_movements_vehicle_id_organization_id_fkey"
+      columns: ["vehicle_id","organization_id"]
+isOneToOne: false
+      referencedRelation: "vehicles"
+      referencedColumns: ["id","organization_id"]
+    }
+                  ]
+                },"vehicles": {
+                  Row: {
+                    "build_year": number | null,"color": string,"equipment": (string)[],"equipment_notes": string,"first_registration": string | null,"id": string,"keys_recorded": boolean,"keys_revision": number,"location": string,"make": string,"mileage": number,"model": string,"organization_id": string,"parking_space_id": string | null,"plate": string,"revision": number,"site_id": string | null,"variant": string,"vin": string
+                  }
+                  Insert: {
+                    "build_year"?: number | null,"color": string,"equipment"?: (string)[],"equipment_notes"?: string,"first_registration"?: string | null,"id"?: string,"keys_recorded"?: boolean,"keys_revision"?: number,"location": string,"make": string,"mileage": number,"model": string,"organization_id": string,"parking_space_id"?: string | null,"plate": string,"revision"?: number,"site_id"?: string | null,"variant"?: string,"vin": string
+                  }
+                  Update: {
+                    "build_year"?: number | null,"color"?: string,"equipment"?: (string)[],"equipment_notes"?: string,"first_registration"?: string | null,"id"?: string,"keys_recorded"?: boolean,"keys_revision"?: number,"location"?: string,"make"?: string,"mileage"?: number,"model"?: string,"organization_id"?: string,"parking_space_id"?: string | null,"plate"?: string,"revision"?: number,"site_id"?: string | null,"variant"?: string,"vin"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "vehicle_site_fk"
+      columns: ["site_id","organization_id"]
+isOneToOne: false
+      referencedRelation: "fleet_sites"
+      referencedColumns: ["id","organization_id"]
+    },{
+      foreignKeyName: "vehicle_space_fk"
+      columns: ["parking_space_id","site_id","organization_id"]
+isOneToOne: false
+      referencedRelation: "parking_spaces"
+      referencedColumns: ["id","site_id","organization_id"]
+    },{
       foreignKeyName: "vehicles_organization_id_fkey"
       columns: ["organization_id"]
 isOneToOne: false
@@ -364,6 +439,9 @@ isOneToOne: false
 "manage_team_member":
 { Args: { "p_expected_role": string,"p_id": string,"p_remove": boolean,"p_role": string }; Returns: undefined
                            },
+"move_vehicle":
+{ Args: { "p_location": string,"p_reason": string,"p_revision": number,"p_site": string,"p_space": string,"p_vehicle": string }; Returns: undefined
+                           },
 "preview_team_invitation":
 { Args: { "p_token": string }; Returns: Json
                            },
@@ -375,6 +453,12 @@ isOneToOne: false
                            },
 "revoke_team_invitation":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"save_fleet_site":
+{ Args: { "p_address": string,"p_id": string,"p_name": string,"p_org": string,"p_revision": number }; Returns: undefined
+                           },
+"save_parking_space":
+{ Args: { "p_id": string,"p_label": string,"p_org": string,"p_revision": number,"p_site": string }; Returns: undefined
                            },
 "save_vehicle_holder":
 { Args: { "p_expected_revision": number,"p_values": Json,"p_vehicle": string }; Returns: undefined
