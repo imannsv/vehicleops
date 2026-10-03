@@ -2,6 +2,7 @@ import {Data,Handover,Kind,Order,ProtocolDraft,Vehicle,Purpose,StockStatus,shots
 import {loadCloud,mutateDemo} from './repository';
 import {supabase} from './supabase';
 import {keySnapshot,keyValidation} from './vehicle-records';
+import {activeSites,activeSpaces} from './fleet-archive';
 import {recordMovement} from './inventory-domain';
 import type {Json} from './database.types';
 export const purposeLabels:Record<Purpose,string>={transport:'Überführung',purchase:'Ankauf',sale:'Verkauf',rental:'Vermietung',return:'Rücknahme',other:'Sonstiges'};
@@ -17,6 +18,8 @@ export function protocolErrors(data:Data,v:Vehicle,d:ProtocolDraft,standalone:bo
  if((!d.parties.giver.signature||!d.parties.receiver.signature)&&(!d.parties.exception_confirmed||!d.parties.exception_reason.trim()))errors.push('Fehlende Unterschrift: Ausnahme bestätigen und begründen.');
  if(d.damages.some(d=>!d.area.trim()||!d.description.trim()))errors.push('Schaden benötigt Bereich und Beschreibung.');
  if((standalone||kind==='delivery')&&!d.position.confirmed)errors.push('Tatsächliche Position bestätigen.');if((standalone||kind==='delivery')&&!d.position.site_id&&!d.position.location.trim())errors.push('Position fehlt.');if(standalone&&v.inventory_kind==='owned'&&!d.stock_confirmed)errors.push('Bestandsstatus bestätigen.');
+ if((standalone||kind==='delivery')&&d.position.site_id&&!activeSites(data).some(s=>s.id===d.position.site_id))errors.push('Standort ist archiviert. Bitte eine aktive Position wählen.');
+ if((standalone||kind==='delivery')&&d.position.space_id&&!activeSpaces(data,d.position.site_id??undefined).some(s=>s.id===d.position.space_id))errors.push('Stellplatz ist archiviert. Bitte eine aktive Position wählen.');
  if((standalone||kind==='delivery')&&d.position.site_id&&d.position.site_revision!==data.sites?.find(s=>s.id===d.position.site_id)?.revision)errors.push('Standortangaben geändert. Position erneut prüfen und bestätigen.');
  if((standalone||kind==='delivery')&&d.position.space_id&&d.position.space_revision!==data.spaces?.find(s=>s.id===d.position.space_id)?.revision)errors.push('Stellplatzangaben geändert. Position erneut prüfen und bestätigen.');
  if((standalone||kind==='delivery')&&d.position.space_id&&data.vehicles.some(row=>row.id!==v.id&&row.parking_space_id===d.position.space_id))errors.push('Stellplatz belegt. Bitte eine freie Position auswählen.');

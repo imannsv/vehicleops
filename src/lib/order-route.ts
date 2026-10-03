@@ -1,4 +1,5 @@
 import {Data, Order, isActiveOrder} from './domain';
+import {activeSites,activeSpaces} from './fleet-archive';
 
 /** Planning references never reserve a bay or replace a confirmed actual position. */
 export function normalizeOrderRoute(data:Data, order:Order, previous?:Order):Order {
@@ -12,6 +13,7 @@ export function normalizeOrderRoute(data:Data, order:Order, previous?:Order):Ord
   }
   const site=next[siteKey]?data.sites?.find(s=>s.id===next[siteKey]&&s.organization_id===next.organization_id):null;
   if(next[siteKey]&&!site)throw Error('Standort gehört nicht zum Unternehmen.');
+  if(site&&!activeSites(data).some(s=>s.id===site.id)&&!(leg==='pickup'&&previous?.status==='in_transit'&&next.pickup_site_id===previous.pickup_site_id))throw Error('Standort ist archiviert. Bitte einen aktiven Standort wählen.');
   const changed=!previous||next[siteKey]!== (previous[siteKey]??null);
   next[leg]=(site&&changed?site.name:next[leg]).trim();
   next[addressKey]=site?(changed?site.address:next[addressKey]??''):'';
@@ -19,6 +21,7 @@ export function normalizeOrderRoute(data:Data, order:Order, previous?:Order):Ord
  }
  if(next.destination_space_id){
   if(!data.spaces?.some(s=>s.id===next.destination_space_id&&s.site_id===next.destination_site_id&&s.organization_id===next.organization_id))throw Error('Zielstellplatz gehört nicht zum Standort.');
+  if(!activeSpaces(data,next.destination_site_id??undefined).some(s=>s.id===next.destination_space_id))throw Error('Zielstellplatz ist archiviert. Bitte einen aktiven Stellplatz wählen.');
   // Existing plans can stay visible if a bay becomes occupied; delivery rechecks it.
   if((!previous||next.destination_space_id!==previous.destination_space_id||next.vehicle_id!==previous.vehicle_id)&&data.vehicles.some(v=>v.id!==next.vehicle_id&&v.parking_space_id===next.destination_space_id))throw Error('Zielstellplatz ist bereits belegt.');
  }

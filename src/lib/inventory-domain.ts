@@ -1,4 +1,5 @@
 import { Data, Vehicle, VehicleMovement, isActiveOrder } from './domain';
+import { activeSites, activeSpaces } from './fleet-archive';
 
 export function positionLabel(data:Data,vehicle:Vehicle) {
  const site=data.sites?.find(s=>s.id===vehicle.site_id),space=data.spaces?.find(s=>s.id===vehicle.parking_space_id);
@@ -33,7 +34,9 @@ export function moveInventory(data:Data,vehicle:Vehicle,site:string|null,space:s
  if(reason.trim().length>1000)throw Error('Der Anlass darf höchstens 1.000 Zeichen enthalten.');
  const target=site?data.sites?.find(s=>s.id===site&&s.organization_id===data.organization.id):null;
  if(site&&!target)throw Error('Standort gehört nicht zum Arbeitsbereich.');
+ if(site&&!activeSites(data).some(s=>s.id===site))throw Error('Standort ist archiviert. Bitte einen aktiven Standort wählen.');
  if(space&&(!site||!data.spaces?.some(s=>s.id===space&&s.site_id===site&&s.organization_id===data.organization.id)))throw Error('Stellplatz gehört nicht zum Standort.');
+ if(space&&!activeSpaces(data,site??undefined).some(s=>s.id===space))throw Error('Stellplatz ist archiviert. Bitte einen aktiven Stellplatz wählen.');
  if(space&&data.vehicles.some(other=>other.id!==v.id&&other.parking_space_id===space))throw Error('Dieser Stellplatz ist bereits belegt.');
  const text=target?.name??location.trim();if(!text||text.length>240)throw Error('Bitte eine Standortangabe eingeben.');
  if((v.site_id??null)===site&&(v.parking_space_id??null)===space&&v.location===text)throw Error('Fahrzeug steht bereits an diesem Standort.');

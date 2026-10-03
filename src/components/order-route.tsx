@@ -1,5 +1,6 @@
 'use client';
 import {useState} from 'react';
+import {activeSpaces} from '@/lib/fleet-archive';
 import {Data,Order} from '@/lib/domain';
 import {contactPhone,navigationUrl,nextDriverOrders} from '@/lib/order-route';
 import {vehicleIdentity,vehicleTitle} from '@/lib/company';
@@ -11,11 +12,11 @@ export function OrderRouteFields({data,order,vehicleId,inTransit}:{data:Data;ord
   const unchanged=id===(leg==='pickup'?order?.pickup_site_id:order?.destination_site_id);
   const text=site?(unchanged?order?.[leg]??site.name:site.name):undefined;
   const address=site?(unchanged?(leg==='pickup'?order?.pickup_address:order?.destination_address)??site.address:site.address):'';
-  return <div className="route-fields" key={leg}><label>{leg==='pickup'?'Abholstandort':'Zielstandort'}<select aria-label={leg==='pickup'?'Abholstandort':'Zielstandort'} value={id} disabled={locked} onChange={e=>{if(leg==='pickup')setPickup(e.target.value);else{setDestination(e.target.value);setSpace('');}}}><option value="">Freie Adresse / Kundenort</option>{data.sites?.map(s=><option value={s.id} key={s.id}>{s.name}</option>)}</select></label>
+  return <div className="route-fields" key={leg}><label>{leg==='pickup'?'Abholstandort':'Zielstandort'}<select aria-label={leg==='pickup'?'Abholstandort':'Zielstandort'} value={id} disabled={locked} onChange={e=>{if(leg==='pickup')setPickup(e.target.value);else{setDestination(e.target.value);setSpace('');}}}><option value="">Freie Adresse / Kundenort</option>{data.sites?.filter(s=>!s.archived_at||s.id===id).map(s=><option value={s.id} key={s.id} disabled={!!s.archived_at&&!locked}>{s.name}{s.archived_at?' · archiviert':''}</option>)}</select></label>
    <input type="hidden" name={leg+'_site_id'} value={id}/><input type="hidden" name={leg+'_address'} value={address}/>
    <label>{leg==='pickup'?'Abholort':'Zielort'}<input key={id} name={leg} maxLength={240} required readOnly={!!site||locked} defaultValue={text??order?.[leg]??''} placeholder="Straße, Hausnummer, PLZ und Ort"/></label>{site&&<p className="muted small">{address||'Für diesen Standort ist noch keine Adresse hinterlegt.'}</p>}
   </div>;
- })}<label className="span-2">Zielstellplatz (optional)<select aria-label="Zielstellplatz (optional)" name="destination_space_id" value={space} disabled={!destination} onChange={e=>setSpace(e.target.value)}><option value="">Ohne festen Stellplatz</option>{data.spaces?.filter(s=>s.site_id===destination).map(s=>{const occupant=data.vehicles.find(v=>v.id!==vehicleId&&v.parking_space_id===s.id);return <option value={s.id} key={s.id} disabled={!!occupant}>{s.label}{occupant?' · belegt':''}</option>;})}</select></label><p className="muted small span-2">Ein Zielstellplatz wird vorgemerkt, nicht reserviert. Die tatsächliche Position wird bei der Übergabe bestätigt.</p></>;
+ })}<label className="span-2">Zielstellplatz (optional)<select aria-label="Zielstellplatz (optional)" name="destination_space_id" value={space} disabled={!destination} onChange={e=>setSpace(e.target.value)}><option value="">Ohne festen Stellplatz</option>{activeSpaces(data,destination).map(s=>{const occupant=data.vehicles.find(v=>v.id!==vehicleId&&v.parking_space_id===s.id);return <option value={s.id} key={s.id} disabled={!!occupant}>{s.label}{occupant?' · belegt':''}</option>;})}</select></label><p className="muted small span-2">Ein Zielstellplatz wird vorgemerkt, nicht reserviert. Die tatsächliche Position wird bei der Übergabe bestätigt.</p></>;
 }
 
 export function OrderRouteSummary({data,order}:{data:Data;order:Order}){

@@ -1,4 +1,10 @@
 @import "tailwindcss";
+.fleet-tabs { display:flex; flex-wrap:wrap; gap:10px; }
+.archive-dialog p { margin-top:14px; line-height:1.6; overflow-wrap:anywhere; }
+.archive-dialog .archive-name { font-weight:650; margin:16px 0; }
+.archive-blockers { background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:16px; margin-top:20px; }
+.archive-blockers button { text-align:left; white-space:normal; }
+.site-card>.section-heading { flex-wrap:wrap; gap:12px; }
 .site-setup-banner { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:24px; }
 .site-setup-banner p,.site-welcome p { margin-top:10px; line-height:1.6; }
 .site-setup-banner button { flex-shrink:0; }

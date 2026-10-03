@@ -2,7 +2,49 @@ import {describe,it,expect} from 'vitest';
 import {seed} from '../src/lib/seed';
 import {filterInventory,inventoryState,moveInventory,positionLabel} from '../src/lib/inventory-domain';
 import {initialParkingSetup,normalizeParkingLabels,parkingPreview} from '../src/lib/parking';
+import {activeSites,activeSpaces,applyFleetArchive,fleetArchiveUsage} from '../src/lib/fleet-archive';
+import {normalizeOrderRoute} from '../src/lib/order-route';
 function fixture(){const data=seed(),org=data.organization.id;data.sites=[{id:'site',organization_id:org,name:'Hof Berlin',address:'Straße 1',revision:1}];data.spaces=[{id:'bay',organization_id:org,site_id:'site',label:'A-01',revision:1}];return data;}
+
+describe('Standort- und Stellplatzarchiv',()=>{
+ it('archiviert und stellt mit unveränderten Kennungen und Historie wieder her',()=>{
+  const data=fixture(),before=structuredClone(data),archived=applyFleetArchive(data,'site','site',1,true);
+  expect(archived.sites![0].archived_at).toBeTruthy();expect(archived.sites![0].revision).toBe(2);expect(activeSites(archived)).toHaveLength(0);expect(activeSpaces(archived)).toHaveLength(0);
+  const restored=applyFleetArchive(archived,'site','site',2,false);expect(restored.sites![0]).toMatchObject({id:'site',name:'Hof Berlin',revision:3,archived_at:null});expect(restored.spaces).toEqual(data.spaces);expect(restored.movements).toEqual(data.movements);expect(restored.handovers).toEqual(data.handovers);expect(data).toEqual(before);
+ });
+ it('belegte Plätze und noch benötigte Auftragsorte sind gesperrt',()=>{
+  const data=fixture();data.vehicles[0]={...data.vehicles[0],site_id:'site',parking_space_id:'bay'};
+  expect(()=>applyFleetArchive(data,'space','bay',1,true)).toThrow('belegt');expect(()=>applyFleetArchive(data,'site','site',1,true)).toThrow('Fahrzeuge');
+  data.vehicles[0].site_id=null;data.vehicles[0].parking_space_id=null;data.orders[0].pickup_site_id='site';
+  expect(()=>applyFleetArchive(data,'site','site',1,true)).toThrow('Offene Aufträge');
+  data.orders[0].status='in_transit';expect(fleetArchiveUsage(data,'site','site').orders).toHaveLength(0);
+  data.orders[0].destination_site_id='site';data.orders[0].destination_space_id='bay';
+  for(const kind of ['site','space'] as const)expect(()=>applyFleetArchive(data,kind,kind==='site'?'site':'bay',1,true)).toThrow('Offene Aufträge');
+  data.orders[0].status='completed';expect(()=>applyFleetArchive(data,'site','site',1,true)).not.toThrow();
+ });
+ it('einzeln archivierte Plätze werden durch Standortwiederherstellung nicht reaktiviert',()=>{
+  let data=fixture();data=applyFleetArchive(data,'space','bay',1,true);data=applyFleetArchive(data,'site','site',1,true);
+  expect(()=>applyFleetArchive(data,'space','bay',2,false)).toThrow('zuerst den Standort');
+  data=applyFleetArchive(data,'site','site',2,false);expect(activeSpaces(data)).toHaveLength(0);
+  data=applyFleetArchive(data,'space','bay',2,false);expect(activeSpaces(data)).toHaveLength(1);
+ });
+ it('Wiederholungen sind idempotent und veraltete Gegenaktionen werden abgelehnt',()=>{
+  const data=fixture(),archived=applyFleetArchive(data,'space','bay',1,true);
+  expect(applyFleetArchive(archived,'space','bay',1,true)).toBe(archived);
+  expect(()=>applyFleetArchive(archived,'space','bay',1,false)).toThrow('inzwischen');
+  expect(()=>applyFleetArchive(data,'site','foreign',1,true)).toThrow('fehlt');
+ });
+ it('archivierte Ziele scheiden für Bewegungen und neue Aufträge aus; vergangene Abholung bleibt erhalten',()=>{
+  const data=applyFleetArchive(fixture(),'site','site',1,true),vehicle=data.vehicles[0];
+  expect(()=>moveInventory(data,vehicle,'site',null,'','')).toThrow('archiviert');
+  expect(()=>normalizeOrderRoute(data,{...data.orders[0],pickup_site_id:'site'})).toThrow('archiviert');
+  const previous={...data.orders[0],status:'in_transit' as const,pickup_site_id:'site',pickup:'Hof Berlin',pickup_address:'Straße 1'};
+  expect(normalizeOrderRoute(data,previous,previous).pickup_address).toBe('Straße 1');
+  const bayData=applyFleetArchive(fixture(),'space','bay',1,true);
+  expect(()=>moveInventory(bayData,bayData.vehicles[0],'site','bay','','')).toThrow('archiviert');
+  expect(()=>normalizeOrderRoute(bayData,{...bayData.orders[0],destination_site_id:'site',destination_space_id:'bay'})).toThrow('archiviert');
+ });
+});
 
 describe('Stellplätze gesammelt anlegen',()=>{
  it('Nummernreihe zeigt tatsächliche neue und vorhandene Plätze',()=>{

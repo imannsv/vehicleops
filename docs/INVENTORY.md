@@ -20,7 +20,17 @@ Standort und erste Stellplätze werden in einer Transaktion gespeichert. Ein ung
 
 Der Fahrzeugtitel öffnet die Fahrzeugakte; Fahrzeuge ohne Kennzeichen bleiben über Bestandsnummer und VIN identifizierbar. **Fahrzeug umsetzen** wählt Zielstandort und optionalen Stellplatz oder eine freie Angabe. Anlass ist optional. Ohne Eingabe hält die Historie die neutrale Beschreibung „Fahrzeug umgesetzt“ fest, weiterhin mit Ursprung, Ziel, Person und Zeitpunkt. Belegte Stellplätze sind gesperrt; die Datenbank verhindert gleichzeitige Doppelbelegungen. Konflikte verlangen eine erneute Prüfung der aktuellen Position. **Aktualisieren** lädt Änderungen anderer Benutzer/Tabs; **Aktuelle Position übernehmen und neu prüfen** setzt ein veraltetes Bewegungsformular zurück.
 
-Bestehende Freitextangaben bleiben erhalten. Die Migration erzeugt keine Standorte aus diesen Angaben und ergänzt keine historischen Bewegungen. Fahrzeuge werden bewusst zugeordnet. Löschen/Archivieren von Standorten und Stellplätzen folgt später.
+Bestehende Freitextangaben bleiben erhalten. Die Migration erzeugt keine Standorte aus diesen Angaben und ergänzt keine historischen Bewegungen. Fahrzeuge werden bewusst zugeordnet.
+
+## Archivieren und wiederherstellen
+
+Unter **Standorte** können Admin und Disposition über das Archivsymbol einzelne Stellplätze oder ganze Standorte archivieren. Der Bestätigungsdialog erklärt die Änderung. **Archivierte Standorte** und **Archivierte Stellplätze anzeigen** zeigen die bisherigen Bereiche; das Wiederherstellungssymbol macht sie erneut auswählbar. Mitglieder dürfen das Archiv lesen, Fahrer und Zuschauer können es nicht ändern.
+
+Belegte Stellplätze, Standorte mit Fahrzeugen und noch benötigte Transportziele lassen sich nicht archivieren. Auch eine ausstehende Abholung sperrt ihren Standort. Der Dialog führt direkt zu den betroffenen Fahrzeugen und Aufträgen. Nach erfolgter Übernahme blockiert eine frühere Abholung den Standort nicht mehr; die eingefrorene Route bleibt lesbar. Ein Stellplatz ist ebenfalls gesperrt, solange ein offener Auftrag ihn als Ziel benötigt.
+
+Archivierte Bereiche fehlen in neuen Bestandsfiltern, Positions- und Auftragsauswahlen. Alte Protokolle, Bewegungen und Kennungen bleiben unverändert. Beim Archivieren eines Standorts werden alle seine Plätze aus der Auswahl genommen, ohne ihren eigenen Archivzustand zu verändern. Wiederherstellung des Standorts stellt daher nur zuvor aktive Plätze wieder zur Verfügung; einzeln archivierte Plätze bleiben archiviert. Sie können anschließend separat wiederhergestellt werden. Archivierte Bezeichnungen bleiben reserviert; Sammelanlage überspringt sie und stellt sie nicht automatisch wieder her.
+
+Revisionen verhindern das Überschreiben gleichzeitiger Änderungen. Wiederholen nach verlorener Serverantwort erhöht die Revision nicht erneut. Datenbankprüfungen verhindern neue Positionen oder Transportplanungen auf archivierten Bereichen, auch bei gleichzeitigen Aktionen und älteren App-Aufrufen. Es werden keine Bereiche endgültig gelöscht.
 
 ## Übernahme und Übergabe
 
@@ -30,8 +40,8 @@ Die Historie hält Ursprung, Ziel, damalige Bezeichnungen, Anlass, Person, Zeitp
 
 ## Daten und Rechte
 
-- `fleet_sites`: Organisation, Name, Anschrift, Revision.
-- `parking_spaces`: Organisation, fester Standort, Bezeichnung, Revision.
+- `fleet_sites`: Organisation, Name, Anschrift, Revision, optionaler Archivzeitpunkt.
+- `parking_spaces`: Organisation, fester Standort, Bezeichnung, Revision, optionaler Archivzeitpunkt.
 - `vehicles.site_id` und `parking_space_id`: optionale Zuordnung neben dem kompatiblen Freitext `location`.
 - `vehicle_movements`: unveränderliche Bewegungen mit Ortskopien und optionaler Protokoll-Verknüpfung.
 
@@ -47,11 +57,12 @@ node tests/build-demo.mjs
 npm run test:e2e
 node tests/inventory.integration.mjs
 node tests/parking.integration.mjs
+node tests/fleet-archive.integration.mjs
 node tests/records.integration.mjs
 ```
 
 Nach `node tests/build-local-cloud.mjs` und `npm run start` prüft `node tests/inventory.browser.mjs` tatsächliche Standort-/Stellplatzanlage, feste und freie Positionen, Speicherung, Filter und lesenden Teamzugang. Die Integrationsskripte sind auf den lokalen Supabase-Stack begrenzt und entfernen ihre Fixtures.
 
-`node tests/parking.browser.mjs` prüft zusätzlich den Einstieg eines neuen Firmenkontos auf Desktop und im Handyformat, Sammelanlage, einen verlorenen Serverantwortfall mit sicherer Wiederholung, Neuladen/Suche und die lesende Zuschaueroberfläche.
+`node tests/parking.browser.mjs` prüft zusätzlich den Einstieg eines neuen Firmenkontos auf Desktop und im Handyformat, Sammelanlage, verlorene Serverantworten bei Anlage und Archivierung mit sicherer Wiederholung, Neuladen/Suche, Archiv/Wiederherstellung und die lesende Zuschaueroberfläche. `fleet-archive.integration.mjs` prüft Rollen/Mandanten, alte Aufrufe, belegte und verplante Bereiche, Archivierung nach Abholung, eingefrorene Protokolle/Bewegungen, Abschluss-Rollback und konkurrierende Positionierung/Planung.
 
-Feste Abhol-/Zielstandorte, optionale Zielstellplätze und bestätigte Ankunft sind umgesetzt. Offline-Sync, Standortrechte einzelner Teams und Archivierung folgen später. Der echte mobile.de-Anbindungstest bleibt auf Wunsch zurückgestellt.
+Feste Abhol-/Zielstandorte, optionale Zielstellplätze, bestätigte Ankunft und Archivierung sind umgesetzt. Offline-Sync und Standortrechte einzelner Teams folgen später. Der echte mobile.de-Anbindungstest bleibt auf Wunsch zurückgestellt.

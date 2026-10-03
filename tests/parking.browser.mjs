@@ -33,11 +33,24 @@ try {
   const bays=ok(await admin.from('parking_spaces').select('*').eq('organization_id',org));expect(new Set(bays.map(bay=>bay.label)).size).toBe(22);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
   if(device==='mobile')expect(await page.getByLabel('Stellplätze in Neuer Hof suchen').evaluate(input=>parseFloat(getComputedStyle(input).fontSize))).toBeGreaterThanOrEqual(16);
+  await card.getByLabel('Stellplätze in Neuer Hof suchen').fill('');
+  let lostArchiveResponse=true;
+  await page.route('**/rest/v1/rpc/set_fleet_archived',async route=>{
+   if(lostArchiveResponse){lostArchiveResponse=false;const response=await route.fetch();expect(response.ok()).toBe(true);await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Archivantwort verloren. Bitte erneut versuchen.'})});}else await route.continue();
+  });
+  await card.getByRole('button',{name:'Stellplatz A-01 archivieren',exact:true}).click();const dialog=page.getByRole('dialog');await dialog.getByRole('button',{name:'Archivieren bestätigen'}).click();await expect(dialog.getByRole('alert')).toContainText('Archivantwort verloren');
+  const archivedBay=ok(await admin.from('parking_spaces').select('*').eq('organization_id',org).eq('label','A-01').single());expect(archivedBay.archived_at).toBeTruthy();
+  await dialog.getByRole('button',{name:'Archivieren bestätigen'}).click();await expect(dialog).toHaveCount(0);await expect(card.locator('.site-total')).toContainText('21 Stellplätze');
+  expect(ok(await admin.from('parking_spaces').select('revision').eq('id',archivedBay.id).single()).revision).toBe(archivedBay.revision);
+  await card.getByRole('button',{name:'Standort Neuer Hof archivieren',exact:true}).click();await dialog.getByRole('button',{name:'Archivieren bestätigen'}).click();await expect(card).toHaveCount(0);await page.reload();await page.getByRole('button',{name:'Standorte',exact:true}).click();await page.getByRole('button',{name:'Archivierte Standorte (1)',exact:true}).click();await expect(card.locator('.space-row')).toHaveCount(20);await expect(card.locator('.site-total')).toContainText('22 Stellplätze · Standort archiviert');
+  await card.getByRole('button',{name:'Standort Neuer Hof wiederherstellen',exact:true}).click();await dialog.getByRole('button',{name:'Wiederherstellen',exact:true}).click();await page.getByRole('button',{name:'Aktive Standorte (1)',exact:true}).click();await expect(card.locator('.site-total')).toContainText('21 Stellplätze');
+  await card.getByRole('button',{name:'Archivierte Stellplätze anzeigen (1)'}).click();await expect(card.locator('.space-row')).toHaveCount(1);await card.getByRole('button',{name:'Stellplatz A-01 wiederherstellen',exact:true}).click();await dialog.getByRole('button',{name:'Wiederherstellen',exact:true}).click();await card.getByRole('button',{name:'Aktive Stellplätze anzeigen'}).click();await expect(card.locator('.site-total')).toContainText('22 Stellplätze');
   ok(await admin.from('memberships').insert({organization_id:org,user_id:viewer.user.id,name:'Viewer',role:'viewer'}));
   const readContext=await browser.newContext(),read=await readContext.newPage();await login(read,viewer);await read.getByRole('button',{name:'Standorte',exact:true}).click();await expect(read.getByRole('heading',{name:'Neuer Hof',exact:true})).toBeVisible();await expect(read.getByRole('button',{name:'Mehrere Stellplätze anlegen',exact:true})).toHaveCount(0);await expect(read.getByRole('button',{name:'Standort einrichten',exact:true})).toHaveCount(0);await expect(read.getByRole('button',{name:'Stellplatz hinzufügen',exact:true})).toHaveCount(0);
+  await expect(read.getByRole('button',{name:/archivieren|wiederherstellen/})).toHaveCount(0);
   expect(errors).toEqual([]);await readContext.close();await context.close();
  }
- console.log('PASS: new-account company/first-site onboarding, desktop/mobile bulk setup and list preview, lost-response retry without duplicates, reload/search and viewer read-only UI');
+ console.log('PASS: new-account onboarding, desktop/mobile bulk setup, lost creation/archive response retries without duplicates, site archive/reload/restore preserving individually archived bays, bay restore, search and viewer read-only UI');
 } finally {
  await browser.close();for(const org of orgs){for(const table of ['parking_spaces','fleet_sites','memberships'])ok(await admin.from(table).delete().eq('organization_id',org));ok(await admin.from('organizations').delete().eq('id',org));}for(const user of users)ok(await admin.auth.admin.deleteUser(user.id));
 }

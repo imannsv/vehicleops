@@ -106,13 +106,13 @@ isOneToOne: false
                   ]
                 },"fleet_sites": {
                   Row: {
-                    "address": string,"id": string,"name": string,"organization_id": string,"revision": number
+                    "address": string,"archived_at": string | null,"id": string,"name": string,"organization_id": string,"revision": number
                   }
                   Insert: {
-                    "address"?: string,"id": string,"name": string,"organization_id": string,"revision"?: number
+                    "address"?: string,"archived_at"?: string | null,"id": string,"name": string,"organization_id": string,"revision"?: number
                   }
                   Update: {
-                    "address"?: string,"id"?: string,"name"?: string,"organization_id"?: string,"revision"?: number
+                    "address"?: string,"archived_at"?: string | null,"id"?: string,"name"?: string,"organization_id"?: string,"revision"?: number
                   }
                   Relationships: [
                     {
@@ -293,13 +293,13 @@ isOneToOne: false
                   ]
                 },"parking_spaces": {
                   Row: {
-                    "id": string,"label": string,"organization_id": string,"revision": number,"site_id": string
+                    "archived_at": string | null,"id": string,"label": string,"organization_id": string,"revision": number,"site_id": string
                   }
                   Insert: {
-                    "id": string,"label": string,"organization_id": string,"revision"?: number,"site_id": string
+                    "archived_at"?: string | null,"id": string,"label": string,"organization_id": string,"revision"?: number,"site_id": string
                   }
                   Update: {
-                    "id"?: string,"label"?: string,"organization_id"?: string,"revision"?: number,"site_id"?: string
+                    "archived_at"?: string | null,"id"?: string,"label"?: string,"organization_id"?: string,"revision"?: number,"site_id"?: string
                   }
                   Relationships: [
                     {
@@ -616,6 +616,9 @@ isOneToOne: false
                            },
 "save_vehicle_record":
 { Args: { "p_holder": Json,"p_holder_revision": number,"p_id": string,"p_org": string,"p_revision": number,"p_values": Json }; Returns: undefined
+                           },
+"set_fleet_archived":
+{ Args: { "p_archived": boolean,"p_id": string,"p_kind": string,"p_org": string,"p_revision": number }; Returns: undefined
                            },
 "set_vehicle_cover":
 { Args: { "p_id": string,"p_kind": string,"p_revision": number,"p_vehicle": string }; Returns: undefined

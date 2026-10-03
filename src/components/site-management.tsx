@@ -5,17 +5,21 @@ import { vehicleIdentity } from '@/lib/company';
 import { addSpaces, createSiteWithSpaces, saveSite, saveSpace } from '@/lib/inventory';
 import { initialParkingSetup, parkingPreview } from '@/lib/parking';
 import { ParkingSetupFields } from './parking-setup';
+import { activeSites } from '@/lib/fleet-archive';
+import { FleetArchiveAction } from './fleet-archive-action';
 
-type Props = { data: Data; cloud: boolean; manage: boolean; onChange: (data: Data) => void };
+type Props = { data: Data; cloud: boolean; manage: boolean; onChange: (data: Data) => void; onVehicle?: (id:string)=>void; onOrder?: (id:string)=>void };
 const message = (error: unknown) => error instanceof Error ? error.message : 'Speichern fehlgeschlagen. Bitte erneut versuchen.';
 
-export function SitesPanel({ data, cloud, manage, onChange }: Props) {
+export function SitesPanel({ data, cloud, manage, onChange, onVehicle, onOrder }: Props) {
   const [editing, setEditing] = useState<FleetSite | null>(null);
   const [showForm, setShowForm] = useState(!data.sites?.length);
   // Reuse this ID after a failed request: a successful write followed by a lost response must not create a second site.
   const [newId, setNewId] = useState(() => crypto.randomUUID());
   const [setup, setSetup] = useState(initialParkingSetup);
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
+  const [archived, setArchived] = useState(false);
+  const sites = (data.sites ?? []).filter(site => !!site.archived_at === archived);
   const preview = parkingPreview(setup);
 
   function open(site: FleetSite | null) {
@@ -36,7 +40,7 @@ export function SitesPanel({ data, cloud, manage, onChange }: Props) {
         onChange(result.data);
         setNotice(result.added ? `Standort mit ${result.added} Stellplätzen angelegt.` : 'Standort gespeichert. Stellplätze können jederzeit ergänzt werden.');
       }
-      setEditing(null); setShowForm(false);
+      setEditing(null); setShowForm(false); setArchived(false);
     } catch (error) { setError(message(error)); } finally { setBusy(false); }
   }
   return <div className="sites-panel">
@@ -53,17 +57,22 @@ export function SitesPanel({ data, cloud, manage, onChange }: Props) {
         <div className="record-actions"><button className="primary" disabled={!editing && !!preview.error}>{busy ? 'Wird gespeichert …' : 'Standort speichern'}</button><button type="button" className="secondary" onClick={() => { setShowForm(false); setEditing(null); }}>Abbrechen</button></div>
       </fieldset></form>
     </section>}
-    <div className="site-grid">{data.sites?.map(site => <SiteCard key={site.id} {...{ data, site, cloud, manage, onChange }} onEdit={() => open(site)}/>)}</div>
+    {!!data.sites?.length && <div className="fleet-tabs" aria-label="Standortansicht"><button className={archived?'secondary':'primary'} aria-pressed={!archived} onClick={()=>setArchived(false)}>Aktive Standorte ({activeSites(data).length})</button><button className={archived?'primary':'secondary'} aria-pressed={archived} onClick={()=>setArchived(true)}>Archivierte Standorte ({data.sites.filter(site=>site.archived_at).length})</button></div>}
+    {!sites.length && !!data.sites?.length && <p className="muted">{archived?'Keine archivierten Standorte.':'Keine aktiven Standorte. Einen Standort hinzufügen oder im Archiv wiederherstellen.'}</p>}
+    <div className="site-grid">{sites.map(site => <SiteCard key={site.id} {...{ data, site, cloud, manage, onVehicle, onOrder }} onChange={next=>{onChange(next);setNotice('');}} onEdit={() => open(site)}/>)}</div>
   </div>;
 }
 
-function SiteCard({ data, site, cloud, manage, onChange, onEdit }: Props & { site: FleetSite; onEdit: () => void }) {
+function SiteCard({ data, site, cloud, manage, onChange, onEdit, onVehicle, onOrder }: Props & { site: FleetSite; onEdit: () => void }) {
   const [editing, setEditing] = useState<ParkingSpace | null>(null), [bulk, setBulk] = useState(false);
   const [setup, setSetup] = useState(() => initialParkingSetup('range'));
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
   const [search, setSearch] = useState(''), [limit, setLimit] = useState(20);
+  const [archivedSpaces, setArchivedSpaces] = useState(false);
+  const canEdit=manage&&!site.archived_at;
   const spaces = (data.spaces?.filter(space => space.site_id === site.id) ?? []).sort((a, b) => a.label.localeCompare(b.label, 'de', { numeric: true }));
-  const filtered = spaces.filter(space => space.label.toLocaleLowerCase('de').includes(search.trim().toLocaleLowerCase('de')));
+  const listed=spaces.filter(space=>site.archived_at||!!space.archived_at===archivedSpaces);
+  const filtered = listed.filter(space => space.label.toLocaleLowerCase('de').includes(search.trim().toLocaleLowerCase('de')));
   const vehicles = data.vehicles.filter(vehicle => vehicle.site_id === site.id);
   const preview = parkingPreview(setup, spaces.map(space => space.label));
 
@@ -80,27 +89,30 @@ function SiteCard({ data, site, cloud, manage, onChange, onEdit }: Props & { sit
     try {
       if (preview.error) throw Error(preview.error);
       const result = await addSpaces(data, site.id, preview.labels, cloud);
-      onChange(result.data); setBulk(false); setSearch(''); setLimit(20);
+      onChange(result.data); setBulk(false); setSearch(''); setLimit(20); setArchivedSpaces(false);
       setNotice(result.added ? `${result.added} Stellplätze angelegt.` : 'Die Stellplätze sind bereits vorhanden.');
     } catch (error) { setError(message(error)); } finally { setBusy(false); }
   }
   return <section className="panel site-card">
-    <div className="section-heading"><h2>{site.name}</h2>{manage && <button disabled={busy} className="text-button" aria-label={`Standort ${site.name} bearbeiten`} onClick={onEdit}>Bearbeiten</button>}</div>
+    <div className="section-heading"><h2>{site.name}</h2><div className="detail-actions">{canEdit && <button disabled={busy} className="text-button" aria-label={`Standort ${site.name} bearbeiten`} onClick={onEdit}>Bearbeiten</button>}{manage&&<FleetArchiveAction {...{data,entity:site,cloud,onChange,onVehicle,onOrder}} kind="site"/>}</div></div>
     <p className="muted preserve-lines">{site.address || 'Anschrift nicht erfasst'}</p>
-    <p className="site-total">{spaces.length} Stellplätze · {vehicles.length} Fahrzeuge · {spaces.filter(space => !vehicles.some(vehicle => vehicle.parking_space_id === space.id)).length} freie Stellplätze</p>
+    {site.archived_at&&<p className="muted small">Archiviert am {new Date(site.archived_at).toLocaleDateString('de-DE')}</p>}
+    <p className="site-total">{site.archived_at?`${spaces.length} Stellplätze · Standort archiviert`:`${spaces.filter(s=>!s.archived_at).length} Stellplätze · ${vehicles.length} Fahrzeuge · ${spaces.filter(space=>!space.archived_at&&!vehicles.some(vehicle=>vehicle.parking_space_id===space.id)).length} freie Stellplätze`}</p>
     {error && <p className="alert" role="alert">{error}</p>}{notice && <p className="notice" role="status">{notice}</p>}
-    {manage && !bulk && <button className="secondary bulk-parking-button" disabled={busy} onClick={() => { setBulk(true); setEditing(null); setSetup(initialParkingSetup('range')); setError(''); setNotice(''); }}>Mehrere Stellplätze anlegen</button>}
-    {manage && bulk && <form className="bulk-parking-form" onSubmit={multiple}><fieldset disabled={busy} className="record-fields">
+    {canEdit && !bulk && <button className="secondary bulk-parking-button" disabled={busy} onClick={() => { setBulk(true); setEditing(null); setSetup(initialParkingSetup('range')); setError(''); setNotice(''); }}>Mehrere Stellplätze anlegen</button>}
+    {canEdit && bulk && <form className="bulk-parking-form" onSubmit={multiple}><fieldset disabled={busy} className="record-fields">
       <h3>Mehrere Stellplätze anlegen</h3><ParkingSetupFields value={setup} onChange={setSetup} existing={spaces.map(space => space.label)}/>
       <div className="record-actions"><button className="primary" disabled={!!preview.error || !preview.added.length}>{busy ? 'Wird angelegt …' : `${preview.added.length} Stellplätze anlegen`}</button><button type="button" className="secondary" onClick={() => { setBulk(false); setError(''); }}>Abbrechen</button></div>
     </fieldset></form>}
     {!!spaces.length && <label className="parking-search">Stellplätze in {site.name} suchen<input type="search" value={search} onChange={e => { setSearch(e.target.value); setLimit(20); }} placeholder="z. B. A-01 oder Werkstatt"/></label>}
+    {!site.archived_at&&(archivedSpaces||spaces.some(space=>space.archived_at))&&<button className="text-button" aria-pressed={archivedSpaces} onClick={()=>{setArchivedSpaces(!archivedSpaces);setLimit(20);setEditing(null);setSearch('');}}>{archivedSpaces?'Aktive Stellplätze anzeigen':`Archivierte Stellplätze anzeigen (${spaces.filter(s=>s.archived_at).length})`}</button>}
+    {canEdit&&bulk&&spaces.some(space=>space.archived_at)&&<p className="muted small">Archivierte Bezeichnungen bleiben erhalten und werden übersprungen. Stelle sie bei Bedarf im Stellplatzarchiv wieder her.</p>}
     <div className="space-list">{filtered.slice(0, limit).map(space => {
       const occupied = vehicles.find(vehicle => vehicle.parking_space_id === space.id);
-      return <div className="space-row" key={space.id}><strong>{space.label}</strong><span className={occupied ? '' : 'muted'}>{occupied ? vehicleIdentity(occupied) : 'Frei'}</span>{manage && <button disabled={busy} className="text-button" aria-label={`Stellplatz ${space.label} bearbeiten`} onClick={() => { setEditing(space); setBulk(false); setError(''); setNotice(''); }}>Bearbeiten</button>}</div>;
-    })}{!spaces.length ? <p className="muted">Noch keine Stellplätze.</p> : !filtered.length && <p className="muted">Keine Stellplätze für diese Suche.</p>}</div>
+      return <div className="space-row" key={space.id}><strong>{space.label}</strong><span className={occupied ? '' : 'muted'}>{site.archived_at||space.archived_at?'Archiviert':occupied ? vehicleIdentity(occupied) : 'Frei'}</span>{canEdit&&!space.archived_at && <button disabled={busy} className="text-button" aria-label={`Stellplatz ${space.label} bearbeiten`} onClick={() => { setEditing(space); setBulk(false); setError(''); setNotice(''); }}>Bearbeiten</button>}{canEdit&&<FleetArchiveAction {...{data,entity:space,cloud,onChange,onVehicle,onOrder}} kind="space"/>}</div>;
+    })}{!spaces.length ? <p className="muted">Noch keine Stellplätze.</p> : !filtered.length && <p className="muted">{listed.length?'Keine Stellplätze für diese Suche.':archivedSpaces?'Keine archivierten Stellplätze.':'Keine aktiven Stellplätze.'}</p>}</div>
     {filtered.length > limit && <button className="text-button parking-more" onClick={() => setLimit(limit + 20)}>Weitere Stellplätze anzeigen ({filtered.length - limit})</button>}
-    {manage && !bulk && <form onSubmit={single} key={editing?.id ?? 'new'}><fieldset disabled={busy} className="space-form">
+    {canEdit && !bulk && !archivedSpaces && <form onSubmit={single} key={editing?.id ?? 'new'}><fieldset disabled={busy} className="space-form">
       <label>{editing ? 'Stellplatz bearbeiten' : 'Stellplatz in ' + site.name}<input name="label" required maxLength={80} defaultValue={editing?.label ?? ''} placeholder="Einzelner Platz, z. B. A-01"/></label>
       <button className="secondary">{editing ? 'Stellplatz speichern' : 'Stellplatz hinzufügen'}</button>
       {editing && <button type="button" className="text-button" onClick={() => { setEditing(null); setError(''); }}>Abbrechen</button>}

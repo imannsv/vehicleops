@@ -99,3 +99,13 @@ Die sechzehnte additive Migration `bulk_parking_setup` ist im gewählten Projekt
 Admin und Disposition können bis zu 200 Plätze je Vorgang anlegen. Die neuen Funktionen prüfen die aktuelle Organisationsmitgliedschaft, verwenden den bestehenden Organisationslock und überspringen vorhandene Bezeichnungen. Wiederholung verändert keine vorhandenen Plätze oder Positionen. Die private Umsetzung hat einen leeren Suchpfad; Anonym hat auf alle vier Funktionen keine Ausführungsrechte. Die öffentliche Umsetzung bleibt ohne erhöhte Rechte. Bestehende Tabellenrechte/RLS sind bestätigt; keine neuen Advisor-Warnungen.
 
 75 Fachlogiktests und 64 Desktop-/Mobilprüfungen bestehen. Zusätzlich sind echte lokale Firmenkonto-/Stellplatzbrowser einschließlich verlorener Antwort und Wiederholung, Rollen/Konkurrenz/Rollback, die bisherige Standortprüfung, bestehende SQL-Suite und alle 16 Migrationen mit Altbeständen geprüft. Keine neuen Umgebungsvariablen. [Bedienung](INVENTORY.md) · [Prüfungen](VALIDATION.md).
+
+## Standort- und Stellplatzarchiv – 3. Oktober 2026
+
+Die siebzehnte additive Migration `fleet_archive` ist vor dem App-Deployment im gewählten Projekt `nfocyuyuloyjaikkflai` angewendet. Lokale Datei: `20261003020414_fleet_archive.sql`; Cloud-Version: `20261003021502`. Die unterschiedlichen Zeitstempel bleiben dokumentiert; keinen ungeprüften CLI-Push der bereits angewendeten Inhalte durchführen.
+
+`fleet_sites` und `parking_spaces` erhalten nullable Archivzeitpunkte; alte Datensätze bleiben aktiv. `set_fleet_archived` prüft Admin/Disposition, Organisation, Revision und aktuelle Belegung/Planung. Wiederholungen des bereits erreichten Zustands erzeugen keinen zusätzlichen Übergang. Bestehende Speicher- und Abschlussfunktionen bleiben erhalten; Schutztrigger verhindern neue Zuordnungen zu archivierten Bereichen und erhalten historische IDs und Kopien. Wiederherstellen des Standorts ändert keine individuellen Stellplatzarchive. Keine neuen Umgebungsvariablen.
+
+Cloud-Metadaten bestätigen RLS, unveränderte lesende Tabellenrechte, den öffentlichen Aufruf ohne erhöhte Rechte, leere private Suchpfade und gesperrte anonyme Aufrufe. Triggerfunktionen sind für App-Mitglieder nicht direkt ausführbar. Keine neuen Datenbank-Sicherheitsbefunde oder Performance-Warnungen; bisheriger Auth-Hinweis und ungenutzte Indizes bleiben dokumentiert.
+
+81 Fachlogiktests, 70 Desktop-/Mobilprüfungen, echte lokale Archiv-/Stellplatzbrowser, Rollen/Konkurrenz/Rollback sowie alle 17 Migrationen mit Altbeständen bestehen. Veröffentlichung erfolgt über den vorhandenen GitHub-/Vercel-Ablauf; die öffentliche Abschlussprüfung ist lesend. [Bedienung](INVENTORY.md) · [Prüfungen](VALIDATION.md).
