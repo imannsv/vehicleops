@@ -1,5 +1,13 @@
 # Verifikation des ersten MVP
 
+## Mobile Eingaben und optionale Umsetzungsnotiz – 3. Oktober 2026
+
+Die Eingabeschrift beträgt auf Touchgeräten und bis 1.024 Pixel Breite mindestens 16 Pixel; die größeren Kennzeichenfelder bleiben erhalten. Kilometerstand, Baujahr, Tank-/Ladestand und Importkilometer verwenden `inputMode="numeric"`, Telefonnummern den Typ `tel`, die Postleitzahl eine Zahlentastatur ohne Umwandlung in einen Zahlenwert. Manuelles Vergrößern bleibt erlaubt. Hintergrund: [MDN zu passenden Bildschirmtastaturen](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/inputmode).
+
+Die neuen Browserfälle prüfen die sichtbaren Eingabegrößen in Fahrzeuganlage, Suche, Protokoll und Unternehmensprofil sowie Tastaturhinweise, unveränderte Kennzeichengröße, fokussierte Felder und fehlenden horizontalen Überlauf. Die Tests emulieren ein Mobilgerät in Chromium; die tatsächliche iPhone-Systemtastatur und Safaris automatische Fokusvergrößerung können damit nicht direkt geprüft werden.
+
+Manuelles Umsetzen erlaubt eine leere Begründung. Historie, Person, Ursprung, Ziel und Zeitpunkt werden weiterhin gespeichert; ohne Notiz erscheint „Fahrzeug umgesetzt“. Die lokale RPC-Prüfung bestätigt auch `null` als Begründung, unveränderte Rollen-/Mandantentrennung, Revisionsprüfung, Stellplatzbelegung und gesperrte Historienänderung. Zu lange Notizen werden weiter abgewiesen. Alle 14 Migrationen wurden mit Altbestandsfixtures in einer separaten Datenbank installiert; lokale Advisors melden keine Befunde. Die Fachlogiksuite umfasst 62 bestandene Tests, die Browsersuite 52 Fälle.
+
 ## mobile.de-Bestandsimport – 2. Oktober 2026
 
 - 61 Fachlogiktests bestanden. Die neue Adapterprüfung bestätigt feste HTTPS-Ziele, ausschließlich GET, Basic Auth, gesperrte Weiterleitungen, Größenlimit und neutrale Anbieterfehler. Antworten sind kontrollierte Testdaten; ein echter Händlerzugang wurde nicht verwendet.

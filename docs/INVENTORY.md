@@ -4,7 +4,7 @@
 
 **Bestand** zeigt Fahrzeuge mit Position, Verfügbarkeit und offenem Auftrag. Kombinierbare Filter: Suche, Standort, Stellplatz, Verfügbarkeit und Transportstatus. Verfügbar bedeutet kein offener Auftrag; zugewiesene Fahrzeuge sind reserviert, übernommene in Transport. Standortzuordnung und Auftragsstatus sind unabhängige Angaben.
 
-Ein Kennzeichen öffnet die Fahrzeugakte. **Fahrzeug umsetzen** wählt Zielstandort und optionalen Stellplatz oder eine freie Angabe. Anlass ist verpflichtend. Belegte Stellplätze sind gesperrt; die Datenbank verhindert gleichzeitige Doppelbelegungen. Konflikte verlangen eine erneute Prüfung der aktuellen Position. **Aktualisieren** lädt Änderungen anderer Benutzer/Tabs; **Aktuelle Position übernehmen und neu prüfen** setzt ein veraltetes Bewegungsformular zurück.
+Ein Kennzeichen öffnet die Fahrzeugakte. **Fahrzeug umsetzen** wählt Zielstandort und optionalen Stellplatz oder eine freie Angabe. Anlass ist optional. Ohne Eingabe hält die Historie die neutrale Beschreibung „Fahrzeug umgesetzt“ fest, weiterhin mit Ursprung, Ziel, Person und Zeitpunkt. Belegte Stellplätze sind gesperrt; die Datenbank verhindert gleichzeitige Doppelbelegungen. Konflikte verlangen eine erneute Prüfung der aktuellen Position. **Aktualisieren** lädt Änderungen anderer Benutzer/Tabs; **Aktuelle Position übernehmen und neu prüfen** setzt ein veraltetes Bewegungsformular zurück.
 
 Bestehende Freitextangaben bleiben erhalten. Die Migration erzeugt keine Standorte aus diesen Angaben und ergänzt keine historischen Bewegungen. Fahrzeuge werden bewusst zugeordnet. Löschen/Archivieren von Standorten und Stellplätzen folgt später.
 

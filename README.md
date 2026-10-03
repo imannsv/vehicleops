@@ -31,7 +31,7 @@ Die App enthält ein Manifest, PNG-Icons und einen Service Worker mit verständl
 ## Was funktioniert
 
 - Dashboard mit offenen Aufträgen, Transportstatus und Aktivitäten.
-- Bestandsübersicht mit kombinierten Standort-, Stellplatz-, Verfügbarkeits- und Transportfiltern. Feste Standorte und Stellplätze verwalten, Fahrzeuge mit Begründung umsetzen und unveränderliche Bewegungen ansehen. Siehe [Bestandsverwaltung](docs/INVENTORY.md).
+- Bestandsübersicht mit kombinierten Standort-, Stellplatz-, Verfügbarkeits- und Transportfiltern. Feste Standorte und Stellplätze verwalten, Fahrzeuge mit optionaler Begründung umsetzen und unveränderliche Bewegungen ansehen. Siehe [Bestandsverwaltung](docs/INVENTORY.md).
 - Unternehmensprofil mit Logo, Rechtsform, Geschäftsführung, Kontakt, Anschrift und Steuer-/Registerangaben. Getrennte Bereiche Unternehmen und Team; Startbereich nach Unternehmensart.
 - Gemeinsame Fahrzeugakte ohne Pflichtkennzeichen, mit automatischer Bestandsnummer, eindeutiger VIN, eigener Baureihe und getrenntem Bestands-/Transportstatus.
 - Eigenständige Protokolle für Ankauf, Verkauf, Vermietung und Rücknahme, bestätigte Position und Bestandsänderungen mit Historie.

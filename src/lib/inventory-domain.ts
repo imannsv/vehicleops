@@ -30,7 +30,7 @@ export function moveInventory(data:Data,vehicle:Vehicle,site:string|null,space:s
  const v=data.vehicles.find(v=>v.id===vehicle.id&&v.organization_id===data.organization.id);
  if(!v||(v.revision??1)!==(vehicle.revision??1))throw Error('Fahrzeug wurde inzwischen geändert. Bitte neu laden.');
  if(inventoryState(data,v)==='in_transit')throw Error('Fahrzeug ist in Transport. Standort wird durch das Protokoll fortgeschrieben.');
- if(!reason.trim()||reason.trim().length>1000)throw Error('Bitte einen Anlass für die Bewegung angeben.');
+ if(reason.trim().length>1000)throw Error('Der Anlass darf höchstens 1.000 Zeichen enthalten.');
  const target=site?data.sites?.find(s=>s.id===site&&s.organization_id===data.organization.id):null;
  if(site&&!target)throw Error('Standort gehört nicht zum Arbeitsbereich.');
  if(space&&(!site||!data.spaces?.some(s=>s.id===space&&s.site_id===site&&s.organization_id===data.organization.id)))throw Error('Stellplatz gehört nicht zum Standort.');
@@ -38,5 +38,5 @@ export function moveInventory(data:Data,vehicle:Vehicle,site:string|null,space:s
  const text=target?.name??location.trim();if(!text||text.length>240)throw Error('Bitte eine Standortangabe eingeben.');
  if((v.site_id??null)===site&&(v.parking_space_id??null)===space&&v.location===text)throw Error('Fahrzeug steht bereits an diesem Standort.');
  const next={...v,site_id:site,parking_space_id:space,location:text,revision:(v.revision??1)+1};
- return recordMovement({...data,vehicles:data.vehicles.map(row=>row.id===v.id?next:row)},v,next,'manual',reason.trim());
+ return recordMovement({...data,vehicles:data.vehicles.map(row=>row.id===v.id?next:row)},v,next,'manual',reason.trim()||'Fahrzeug umgesetzt');
 }

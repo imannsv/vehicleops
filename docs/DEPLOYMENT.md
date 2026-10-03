@@ -43,6 +43,12 @@ Neue SQL-Migrationen gehören nach `supabase/migrations`. Git-Pushes wenden sie 
 
 Bei einem fehlerhaften App-Deployment kann im Vercel-Dashboard ein vorheriger erfolgreicher Stand wieder zur Produktion werden. Danach die Ursache per Commit beheben. Datenbankmigrationen werden durch einen App-Rollback nicht zurückgenommen.
 
+## Mobile Eingaben und Umsetzen – 3. Oktober 2026
+
+Die Migration `20261003001110_optional_vehicle_movement_reason.sql` ist im ausgewählten Projekt als Cloud-Version `20261003002011` angewendet. Sie erweitert nur die bestehende private Bewegungsfunktion: leere oder `null`-Notizen erhalten die neutrale Beschreibung „Fahrzeug umgesetzt“. Rollenprüfung, Revisionen, Transport- und Stellplatzsperren sowie Historie bleiben bestehen. Der bestehende RPC-Aufruf bleibt kompatibel; frühere Bewegungen werden nicht verändert. Insgesamt sind 14 Migrationen angewendet.
+
+Die Oberfläche verwendet auf Mobil-/Touchgeräten größere Eingabeschrift und passende Tastaturhinweise. Keine zusätzlichen Umgebungsvariablen. Die Prüfungen umfassen 62 Fachlogiktests und 52 Desktop-/Mobilfälle; Grenzen der Geräteemulation sind in [VALIDATION.md](VALIDATION.md) dokumentiert.
+
 ## mobile.de-Bestandsimport – 2. Oktober 2026
 
 Die lokal geprüfte additive Migration `20261002175214_mobile_stock_import.sql` wurde vor dem App-Deployment im ausgewählten Projekt `nfocyuyuloyjaikkflai` als Cloud-Version `20261002180507` / `mobile_stock_import` angewendet. Dort läuft Postgres 17.11; insgesamt sind nun 13 Migrationen angewendet. Keine bestehenden Fahrzeug- oder Protokolldaten wurden verändert.

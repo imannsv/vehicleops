@@ -42,7 +42,7 @@ export function EntityDialog({ kind, initial, data, cloud, busy, error, onClose,
       {kind === 'vehicle' && <VehicleFields vehicle={vehicle} inTransit={vehicleInTransit} organizationId={data.organization.id} holder={data.holders?.find(h=>h.vehicle_id===vehicle?.id)} />}
       {kind === 'driver' && <>
         <label className="span-2">Name<input name="name" required defaultValue={driver?.name} /></label><label>E-Mail<input name="email" type="email" required defaultValue={driver?.email} /></label>
-        <label>Telefon<input name="phone" required defaultValue={driver?.phone} /></label><label className="span-2">Führerschein gültig bis<input name="license_valid_until" type="date" required defaultValue={driver?.license_valid_until} /></label>
+        <label>Telefon<input name="phone" type="tel" required defaultValue={driver?.phone} /></label><label className="span-2">Führerschein gültig bis<input name="license_valid_until" type="date" required defaultValue={driver?.license_valid_until} /></label>
         {cloud && <label className="span-2">Teammitglied (optional)<select name="user_id" defaultValue={driver?.user_id ?? ''}><option value="">Noch nicht verknüpft</option>{data.members.filter(m => m.role === 'driver').map(m => <option key={m.id} value={m.user_id}>{m.name}</option>)}</select></label>}
       </>}
       {kind === 'order' && <>
