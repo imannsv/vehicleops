@@ -2,6 +2,34 @@ import { Data, FleetSite, ParkingSpace, Vehicle } from './domain';
 import { supabase } from './supabase';
 import { loadCloud, mutateDemo } from './repository';
 import { moveInventory } from './inventory-domain';
+import { normalizeParkingLabels } from './parking';
+
+export async function addSpaces(data:Data,site:string,requested:string[],cloud:boolean):Promise<{data:Data;added:number}> {
+ const labels=normalizeParkingLabels(requested);
+ if(cloud){const r=await supabase!.rpc('add_parking_spaces',{p_org:data.organization.id,p_site:site,p_labels:labels});if(r.error)throw Error(r.error.message);return {data:(await loadCloud(data.organization.id))!,added:r.data};}
+ let added=0;
+ const next=await mutateDemo(latest=>{
+  if(!latest.sites?.some(s=>s.id===site&&s.organization_id===data.organization.id))throw Error('Standort fehlt.');
+  const existing=new Set(latest.spaces?.filter(s=>s.site_id===site).map(s=>s.label));
+  const spaces=labels.filter(label=>!existing.has(label)).map(label=>({id:crypto.randomUUID(),organization_id:latest.organization.id,site_id:site,label,revision:1}));
+  added=spaces.length;return {...latest,spaces:[...(latest.spaces??[]),...spaces]};
+ });return {data:next,added};
+}
+
+export async function createSiteWithSpaces(data:Data,id:string,name:string,address:string,requested:string[],cloud:boolean):Promise<{data:Data;added:number}> {
+ name=name.trim();address=address.trim();const labels=normalizeParkingLabels(requested);
+ if(!name||name.length>120||address.length>1000)throw Error('Bitte Standortname und gültige Anschrift angeben.');
+ if(cloud){const r=await supabase!.rpc('create_fleet_site_with_spaces',{p_id:id,p_org:data.organization.id,p_name:name,p_address:address,p_labels:labels});if(r.error)throw Error(r.error.message);return {data:(await loadCloud(data.organization.id))!,added:r.data};}
+ let added=0;
+ const next=await mutateDemo(latest=>{
+  const old=latest.sites?.find(s=>s.id===id);
+  if(old&&(old.name!==name||old.address!==address))throw Error('Standort wurde inzwischen geändert. Bitte neu laden.');
+  if(latest.sites?.some(s=>s.id!==id&&s.name===name))throw Error('Standortname existiert bereits.');
+  const existing=new Set(latest.spaces?.filter(s=>s.site_id===id).map(s=>s.label));
+  const spaces=labels.filter(label=>!existing.has(label)).map(label=>({id:crypto.randomUUID(),organization_id:latest.organization.id,site_id:id,label,revision:1}));
+  added=spaces.length;return {...latest,sites:old?latest.sites:[...(latest.sites??[]),{id,organization_id:latest.organization.id,name,address,revision:1}],spaces:[...(latest.spaces??[]),...spaces]};
+ });return {data:next,added};
+}
 
 export async function saveSite(data:Data,id:string,revision:number,name:string,address:string,cloud:boolean):Promise<Data> {
  name=name.trim();address=address.trim();if(!name||name.length>120||address.length>1000)throw Error('Bitte Standortname und gültige Anschrift angeben.');

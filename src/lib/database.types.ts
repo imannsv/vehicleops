@@ -554,11 +554,17 @@ isOneToOne: false
 "add_member":
 { Args: { "p_name": string,"p_org": string,"p_role": string,"p_user": string }; Returns: undefined
                            },
+"add_parking_spaces":
+{ Args: { "p_labels": (string)[],"p_org": string,"p_site": string }; Returns: number
+                           },
 "cancel_order":
 { Args: { "p_expected_revision": number,"p_id": string,"p_reason": string }; Returns: undefined
                            },
 "change_vehicle_key":
 { Args: { "p_action": string,"p_expected_revision": number,"p_key": string,"p_values": Json,"p_vehicle": string }; Returns: undefined
+                           },
+"create_fleet_site_with_spaces":
+{ Args: { "p_address": string,"p_id": string,"p_labels": (string)[],"p_name": string,"p_org": string }; Returns: number
                            },
 "create_organization":
 { Args: { "p_member_name": string,"p_name": string }; Returns: string

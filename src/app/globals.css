@@ -1,4 +1,28 @@
 @import "tailwindcss";
+.site-setup-banner { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:24px; }
+.site-setup-banner p,.site-welcome p { margin-top:10px; line-height:1.6; }
+.site-setup-banner button { flex-shrink:0; }
+#site-editor { scroll-margin-top:24px; }
+.parking-setup { display:grid; gap:12px; padding:18px; border:1px solid var(--line); border-radius:10px; background:#f8fafc; min-width:0; }
+.parking-setup label,.parking-search { display:flex; flex-direction:column; gap:8px; }
+.parking-setup .key-check { flex-direction:row; margin:0; }
+.parking-range { display:grid; grid-template-columns:2fr 1fr 1fr; gap:12px; }
+.parking-preview { border-top:1px solid var(--line); padding-top:14px; }
+.parking-preview p { margin-top:8px; }
+.parking-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.parking-tags span { padding:5px 9px; background:white; border:1px solid var(--line); border-radius:6px; font-size:13px; overflow-wrap:anywhere; max-width:100%; }
+.bulk-parking-form { margin-bottom:24px; }
+.bulk-parking-button { width:100%; margin-bottom:20px; }
+.parking-search { margin:16px 0; }
+.parking-more { margin-top:14px; }
+.space-row { flex-wrap:wrap; }
+.space-row>strong { overflow-wrap:anywhere; min-width:0; max-width:100%; }
+@media(max-width:600px) {
+  .site-setup-banner { align-items:flex-start; flex-direction:column; gap:16px; }
+  .parking-range { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .parking-range>label:first-child { grid-column:1/-1; }
+  .parking-setup { padding:14px; }
+}
 .vehicle-list-heading { flex-wrap:wrap; }
 .vehicle-search { width:min(420px,100%); }
 .search.vehicle-search input { min-width:0; flex:1; }

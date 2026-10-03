@@ -91,3 +91,11 @@ Aufträge erhalten optionale Abhol-/Zielstandorte, Zielstellplatz und gespeicher
 Der Release umfasst 70 Fachlogiktests und 58 Desktop-/Mobilprüfungen, die vollständige lokale Auth-/Storage-/Datenbankprüfung und den echten lokalen Recovery-Mailablauf. GitHub Actions führt Lint, Fachlogik, Build, Typprüfung und die Desktop-/Mobilbrowserprüfungen aus. Die abschließende öffentliche Smoke-Prüfung verwendet keine schreibenden Geschäftsvorgänge. [Ablauf und Bedienung](ORDER_WORKFLOW.md) · [Prüfmatrix und Grenzen](FUNCTION_AUDIT.md).
 
 Die vorhandene Supabase-Konfiguration wird weiter genutzt; keine neuen Umgebungsvariablen sind erforderlich. Der echte mobile.de-Händlerzugang und produktive SMTP-Versand bleiben zurückgestellt beziehungsweise noch einzurichten.
+
+## Stellplätze gesammelt einrichten – 3. Oktober 2026
+
+Die sechzehnte additive Migration `bulk_parking_setup` ist im gewählten Projekt `nfocyuyuloyjaikkflai` angewendet. Lokale Datei: `20261003012931_bulk_parking_setup.sql`; Cloud-Version: `20261003013903`. Sie ergänzt zwei öffentliche Aufrufe: `create_fleet_site_with_spaces` für atomare Erstanlage und `add_parking_spaces` für weitere Bezeichnungen. Die bisherigen Aufrufe, Tabellen und vorhandenen Daten bleiben kompatibel. Kein erneuter CLI-Push der abweichend nummerierten Cloud-Historie.
+
+Admin und Disposition können bis zu 200 Plätze je Vorgang anlegen. Die neuen Funktionen prüfen die aktuelle Organisationsmitgliedschaft, verwenden den bestehenden Organisationslock und überspringen vorhandene Bezeichnungen. Wiederholung verändert keine vorhandenen Plätze oder Positionen. Die private Umsetzung hat einen leeren Suchpfad; Anonym hat auf alle vier Funktionen keine Ausführungsrechte. Die öffentliche Umsetzung bleibt ohne erhöhte Rechte. Bestehende Tabellenrechte/RLS sind bestätigt; keine neuen Advisor-Warnungen.
+
+75 Fachlogiktests und 64 Desktop-/Mobilprüfungen bestehen. Zusätzlich sind echte lokale Firmenkonto-/Stellplatzbrowser einschließlich verlorener Antwort und Wiederholung, Rollen/Konkurrenz/Rollback, die bisherige Standortprüfung, bestehende SQL-Suite und alle 16 Migrationen mit Altbeständen geprüft. Keine neuen Umgebungsvariablen. [Bedienung](INVENTORY.md) · [Prüfungen](VALIDATION.md).
