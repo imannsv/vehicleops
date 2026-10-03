@@ -153,3 +153,7 @@ Baujahr, optionale Erstzulassung und Halter lassen sich beim Hinzufügen/Bearbei
 Einzelne Schlüssel führen Bezeichnung, Kennung, Aufbewahrungsort, Zustand und unveränderliche Bewegungshistorie. Die Protokoll-Checkliste speichert Bestätigung und Bewegungen atomar; alte PDFs verwenden unveränderte Kopien. Nicht erfasster Bestand bleibt von ausdrücklich null Schlüsseln unterscheidbar.
 
 Passwort vergessen und `/auth/reset-password` sind vorbereitet und lokal mit echtem Test-Mailversand geprüft. Produktive SMTP-Einrichtung wartet auf Anbieter und Absender-Domain. Bedienung, Rechte, Tests und Einrichtung: [VEHICLE_RECORDS.md](docs/VEHICLE_RECORDS.md). mobile.de ist verbindlicher nächster Integrationskanal in der [Roadmap](docs/ROADMAP.md); Live-Anbindungen folgen nach der Bestandsübersicht.
+
+## Aufträge, Standorte und Fahrer
+
+Aufträge unterstützen feste Abhol-/Zielstandorte und einen optionalen Zielstellplatz neben freien Kundenadressen. Die Übergabe bestätigt die tatsächliche Position atomar; belegte Plätze lassen sich vor dem Unterschreiben wechseln. Fahrer erhalten ihre nächste Abholung beziehungsweise aktuelle Fahrt mit Kontakt, Navigation und direktem Protokollstart. Neue Protokolle verlangen einen tatsächlich eingetragenen Tankstand. Gespeicherte Entwürfe lassen sich nach Fahrzeugänderungen erneut prüfen, ohne Fotos zu verlieren. [Bedienung](docs/ORDER_WORKFLOW.md) · [Funktionsprüfung und Grenzen](docs/FUNCTION_AUDIT.md).

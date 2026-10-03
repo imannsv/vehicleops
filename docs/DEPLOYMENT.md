@@ -81,3 +81,13 @@ Die App enthält `/auth/reset-password`; die bestehende Produktionsfreigabe `htt
 ## Bestandsverwaltung – 2. Oktober 2026
 
 Die additive neunte Migration `fleet_inventory` ist vor dem App-Deployment im ausgewählten Supabase-Projekt angewendet. Sie ergänzt Standorte, Stellplätze und unveränderliche Bewegungen, ohne bestehende Freitextstandorte zuzuordnen oder alte Protokolle umzuschreiben. Beide Abschluss-APIs geben den Stellplatz bei Übernahme atomar frei. GitHub Actions prüft 39 Fachlogiktests und 30 Desktop-/Mobilprüfungen. Bedienung: [INVENTORY.md](INVENTORY.md).
+
+## Auftragsstandorte und Fahrerablauf – 3. Oktober 2026
+
+Die fünfzehnte additive Migration `order_routes_and_confirmed_delivery` ist im ausgewählten Projekt `nfocyuyuloyjaikkflai` angewendet. Lokal: `20261003004642_order_routes_and_confirmed_delivery.sql`; Cloud-Verwaltung: `20261003010756`. Die Cloud-Zeitstempel werden weiterhin separat vergeben; keine bereits angewendeten Inhalte ungeprüft nochmals über CLI-Push übertragen. Alle 15 Migrationen wurden lokal gemeinsam mit Altbeständen geprüft.
+
+Aufträge erhalten optionale Abhol-/Zielstandorte, Zielstellplatz und gespeicherte Navigationsanschriften. Rollen, RLS und alte öffentliche Funktionssignaturen bleiben erhalten. Neue Abschlüsse unterstützen bestätigte tatsächliche Positionen, Standort-/Stellplatzrevisionen, atomare Belegung und idempotente Wiederholungen. Die private Triggerfunktion ist für Anonym und Mitglieder nicht direkt ausführbar; der öffentliche Abschluss bleibt für Anonym gesperrt. Cloud-Advisors melden keine neuen Datenbank-Sicherheitsbefunde oder Performance-Warnungen; die vorhandene Auth-Warnung und bisher ungenutzte Fremdschlüsselindizes sind dokumentiert.
+
+Der Release umfasst 70 Fachlogiktests und 58 Desktop-/Mobilprüfungen, die vollständige lokale Auth-/Storage-/Datenbankprüfung und den echten lokalen Recovery-Mailablauf. GitHub Actions führt Lint, Fachlogik, Build, Typprüfung und die Desktop-/Mobilbrowserprüfungen aus. Die abschließende öffentliche Smoke-Prüfung verwendet keine schreibenden Geschäftsvorgänge. [Ablauf und Bedienung](ORDER_WORKFLOW.md) · [Prüfmatrix und Grenzen](FUNCTION_AUDIT.md).
+
+Die vorhandene Supabase-Konfiguration wird weiter genutzt; keine neuen Umgebungsvariablen sind erforderlich. Der echte mobile.de-Händlerzugang und produktive SMTP-Versand bleiben zurückgestellt beziehungsweise noch einzurichten.

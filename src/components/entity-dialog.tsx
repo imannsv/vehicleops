@@ -1,8 +1,9 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { Data, Driver, Order, Vehicle, isActiveOrder } from '@/lib/domain';
 import {vehicleTitle,vehicleIdentity} from '@/lib/company';
+import {OrderRouteFields} from './order-route';
 import { VehicleFields } from './vehicle-fields';
 export type DialogKind = 'vehicle' | 'driver' | 'order' | 'cancel';
 export function EntityDialog({ kind, initial, data, cloud, busy, error, onClose, onSubmit }: {
@@ -10,12 +11,14 @@ export function EntityDialog({ kind, initial, data, cloud, busy, error, onClose,
   onClose: () => void; onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
   const ref = useRef<HTMLElement>(null);
+  const close=useEffectEvent(onClose);
+  const [selectedVehicle,setSelectedVehicle]=useState((initial as Order|null)?.vehicle_id??'');
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const modal = ref.current!;
     modal.querySelector<HTMLElement>('input,select,textarea')?.focus();
     const handleKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !busy) { event.preventDefault(); onClose(); }
+      if (event.key === 'Escape' && !busy && !(event.target instanceof HTMLElement && event.target.closest('[role="combobox"][aria-expanded="true"]'))) { event.preventDefault(); close(); }
       if (event.key !== 'Tab') return;
       const focusable = Array.from(modal.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled):not([type="hidden"]),select:not(:disabled),textarea:not(:disabled)'));
       const first = focusable[0], last = focusable[focusable.length - 1];
@@ -24,7 +27,7 @@ export function EntityDialog({ kind, initial, data, cloud, busy, error, onClose,
     };
     modal.addEventListener('keydown', handleKey);
     return () => { modal.removeEventListener('keydown', handleKey); previous?.focus(); };
-  }, [busy, onClose]);
+  }, [busy]);
   const vehicle = kind === 'vehicle' ? initial as Vehicle | null : null;
   const driver = kind === 'driver' ? initial as Driver | null : null;
   const order = kind === 'order' || kind === 'cancel' ? initial as Order | null : null;
@@ -46,10 +49,10 @@ export function EntityDialog({ kind, initial, data, cloud, busy, error, onClose,
         {cloud && <label className="span-2">Teammitglied (optional)<select name="user_id" defaultValue={driver?.user_id ?? ''}><option value="">Noch nicht verknüpft</option>{data.members.filter(m => m.role === 'driver').map(m => <option key={m.id} value={m.user_id}>{m.name}</option>)}</select></label>}
       </>}
       {kind === 'order' && <>
-        <label className="span-2">Fahrzeug<select aria-label="Fahrzeug" name="vehicle_id" required defaultValue={order?.vehicle_id ?? ''} disabled={inTransit}><option value="">Fahrzeug auswählen</option>{data.vehicles.filter(v => v.id === order?.vehicle_id || !data.orders.some(o => o.vehicle_id === v.id && isActiveOrder(o))).map(v => <option key={v.id} value={v.id}>{vehicleTitle(v)} · {vehicleIdentity(v)}</option>)}</select></label>
+        <label className="span-2">Fahrzeug<select aria-label="Fahrzeug" name="vehicle_id" required value={selectedVehicle} onChange={e=>setSelectedVehicle(e.target.value)} disabled={inTransit}><option value="">Fahrzeug auswählen</option>{data.vehicles.filter(v => v.id === order?.vehicle_id || !data.orders.some(o => o.vehicle_id === v.id && isActiveOrder(o))).map(v => <option key={v.id} value={v.id}>{vehicleTitle(v)} · {vehicleIdentity(v)}</option>)}</select></label>
         {inTransit && <input type="hidden" name="vehicle_id" value={order!.vehicle_id} />}
         <label className="span-2">Fahrer<select aria-label="Fahrer" name="driver_id" required defaultValue={order?.driver_id ?? ''}><option value="">Fahrer auswählen</option>{data.drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
-        <label>Abholort<input name="pickup" required defaultValue={order?.pickup} readOnly={inTransit} /></label><label>Zielort<input name="destination" required defaultValue={order?.destination} /></label>
+        <OrderRouteFields data={data} order={order} vehicleId={selectedVehicle} inTransit={inTransit}/>
         <label className="span-2">Transportkennzeichen (optional)<input name="transport_plate" maxLength={40} defaultValue={order?.transport_plate??''} placeholder="Verwendetes Kennzeichen für diesen Transport"/></label><label className="span-2">Datum & Uhrzeit<input name="scheduled_at" type="datetime-local" required defaultValue={scheduled} /></label><label className="span-2">Ansprechpartner<input name="contact" placeholder="Name und Telefonnummer" defaultValue={order?.contact} /></label>
       </>}
       {kind === 'cancel' && <label className="span-2">Stornogrund<textarea name="reason" required maxLength={1000} placeholder="Warum wird der Auftrag storniert?" /></label>}

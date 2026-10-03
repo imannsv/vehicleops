@@ -2,8 +2,26 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
-  
-  "public": {
+
+  "graphql_public": {
+          Tables: {
+            [_ in never]: never
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "graphql":
+{ Args: { "extensions"?: Json,"operationName"?: string,"query"?: string,"variables"?: Json }; Returns: Json
+                           }
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        },"public": {
           Tables: {
             "damages": {
                   Row: {
@@ -213,16 +231,34 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "cancellation_reason": string | null,"cancelled_at": string | null,"contact": string,"destination": string,"driver_id": string,"id": string,"organization_id": string,"pickup": string,"reference": string,"revision": number,"scheduled_at": string,"status": string,"transport_plate": string | null,"vehicle_id": string
+                    "cancellation_reason": string | null,"cancelled_at": string | null,"contact": string,"destination": string,"destination_address": string,"destination_site_id": string | null,"destination_space_id": string | null,"driver_id": string,"id": string,"organization_id": string,"pickup": string,"pickup_address": string,"pickup_site_id": string | null,"reference": string,"revision": number,"scheduled_at": string,"status": string,"transport_plate": string | null,"vehicle_id": string
                   }
                   Insert: {
-                    "cancellation_reason"?: string | null,"cancelled_at"?: string | null,"contact"?: string,"destination": string,"driver_id": string,"id"?: string,"organization_id": string,"pickup": string,"reference": string,"revision"?: number,"scheduled_at": string,"status"?: string,"transport_plate"?: string | null,"vehicle_id": string
+                    "cancellation_reason"?: string | null,"cancelled_at"?: string | null,"contact"?: string,"destination": string,"destination_address"?: string,"destination_site_id"?: string | null,"destination_space_id"?: string | null,"driver_id": string,"id"?: string,"organization_id": string,"pickup": string,"pickup_address"?: string,"pickup_site_id"?: string | null,"reference": string,"revision"?: number,"scheduled_at": string,"status"?: string,"transport_plate"?: string | null,"vehicle_id": string
                   }
                   Update: {
-                    "cancellation_reason"?: string | null,"cancelled_at"?: string | null,"contact"?: string,"destination"?: string,"driver_id"?: string,"id"?: string,"organization_id"?: string,"pickup"?: string,"reference"?: string,"revision"?: number,"scheduled_at"?: string,"status"?: string,"transport_plate"?: string | null,"vehicle_id"?: string
+                    "cancellation_reason"?: string | null,"cancelled_at"?: string | null,"contact"?: string,"destination"?: string,"destination_address"?: string,"destination_site_id"?: string | null,"destination_space_id"?: string | null,"driver_id"?: string,"id"?: string,"organization_id"?: string,"pickup"?: string,"pickup_address"?: string,"pickup_site_id"?: string | null,"reference"?: string,"revision"?: number,"scheduled_at"?: string,"status"?: string,"transport_plate"?: string | null,"vehicle_id"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "order_destination_site_fk"
+      columns: ["destination_site_id","organization_id"]
+isOneToOne: false
+      referencedRelation: "fleet_sites"
+      referencedColumns: ["id","organization_id"]
+    },{
+      foreignKeyName: "order_destination_space_fk"
+      columns: ["destination_space_id","destination_site_id","organization_id"]
+isOneToOne: false
+      referencedRelation: "parking_spaces"
+      referencedColumns: ["id","site_id","organization_id"]
+    },{
+      foreignKeyName: "order_pickup_site_fk"
+      columns: ["pickup_site_id","organization_id"]
+isOneToOne: false
+      referencedRelation: "fleet_sites"
+      referencedColumns: ["id","organization_id"]
+    },{
       foreignKeyName: "orders_organization_id_driver_id_fkey"
       columns: ["organization_id","driver_id"]
 isOneToOne: false
@@ -253,7 +289,7 @@ isOneToOne: false
                     "business_type"?: string,"created_at"?: string,"id"?: string,"logo_path"?: string | null,"name"?: string,"profile"?: NonNullable<Json>,"revision"?: number,"vehicle_counter"?: number
                   }
                   Relationships: [
-                    
+
                   ]
                 },"parking_spaces": {
                   Row: {
@@ -706,9 +742,13 @@ export type CompositeTypes<
   : never
 
 export const Constants = {
-  "public": {
+  "graphql_public": {
           Enums: {
-            
+
+          }
+        },"public": {
+          Enums: {
+
           }
         }
 } as const

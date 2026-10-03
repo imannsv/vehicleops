@@ -40,3 +40,7 @@ Version 1 bleibt lesbar und verwendet den bisherigen PDF-Export mit einer Signat
 Die drei additiven Migrationen ergänzen Unternehmens-/Fahrzeugidentität, strukturierte Protokolle und Titelbilder. Alle zwölf Migrationen wurden gemeinsam gegen eine separate lokale Datenbank mit alten Fahrzeug-/Auftrags-/Protokoll-/Fotodatensätzen geprüft. Tests und Veröffentlichung: [VALIDATION.md](VALIDATION.md), [DEPLOYMENT.md](DEPLOYMENT.md).
 
 Verträge, Rechnungen, Mietzeiträume, Abrechnung, öffentliche Inserate und Offline-Sync gehören nicht zu dieser Iteration. mobile.de-Seller-Anbindung ist weiterhin fest in der [Roadmap](ROADMAP.md) eingeplant.
+
+## Auftragsposition und erneute Prüfung – 3. Oktober 2026
+
+Transportübergaben verwenden jetzt eine ausdrücklich bestätigte tatsächliche Position, unabhängig vom geplanten Ziel. Standort- und Stellplatzrevisionen schützen die geprüften Angaben. Beide Entwurfsunterschriften werden nach Positionsänderungen verworfen. Tank-/Ladestand beginnt ohne Vorbelegung. Veraltete Fahrzeugentwürfe bieten eine erneute Prüfung mit erhaltenen Fotos und neuer Abschluss-ID. Die ursprüngliche Protokollversion und alte PDFs bleiben erhalten. [Ablauf](ORDER_WORKFLOW.md) · [Funktionsprüfung](FUNCTION_AUDIT.md).

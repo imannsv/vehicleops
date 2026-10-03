@@ -5,6 +5,7 @@ import { Data, Draft, Handover, Kind, Order, Vehicle, Driver, ProtocolSnapshot, 
 import { EntityTable, applyCancellation, applyEntityUpdate, conflictMessage, scheduledDay, upgradeDemo } from './management';
 import { validateVehicleExtras } from './vehicle-catalog';
 import { keyValidation, keySnapshot } from './vehicle-records';
+import {normalizeOrderRoute} from './order-route';
 import { recordMovement } from './inventory-domain';
 const db = () => openDB('vehicleops-demo-v1', 1, { upgrade(database) { database.createObjectStore('data'); database.createObjectStore('drafts'); } });
 export async function loadDemo(): Promise<Data> { const database = await db(); const transaction = database.transaction('data', 'readwrite'); const existing = await transaction.store.get('state'); const data = upgradeDemo(existing ?? seed()); await transaction.store.put(data, 'state'); await transaction.done; return data; }
@@ -25,7 +26,7 @@ export async function insertDemo(table: EntityTable, row: Vehicle | Driver | Ord
    latest.vehicles.push({ ...v, revision: 1 });
   } else if (table === 'drivers') latest.drivers.push({ ...row as Driver, revision: 1 });
   else {
-   const order = row as Order;
+   const order = normalizeOrderRoute(latest,row as Order);
    if (latest.orders.some(other => other.reference === order.reference || other.vehicle_id === order.vehicle_id && ['assigned', 'in_transit'].includes(other.status))) throw new Error('Dieses Fahrzeug hat bereits einen offenen Auftrag.');
    const driver = latest.drivers.find(d => d.id === order.driver_id);
    if (!driver || driver.license_valid_until < scheduledDay(order.scheduled_at)) throw new Error('Die Führerscheingültigkeit endet vor dem Auftrag.');

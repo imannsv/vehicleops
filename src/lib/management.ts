@@ -1,5 +1,6 @@
 import { Data, Driver, Event, Order, Vehicle, isActiveOrder, protocolSnapshot } from './domain';
 import { validateVehicleExtras } from './vehicle-catalog';
+import {normalizeOrderRoute} from './order-route';
 import { recordMovement } from './inventory-domain';
 
 export type EntityTable = 'vehicles' | 'drivers' | 'orders';
@@ -36,7 +37,7 @@ export function applyEntityUpdate(data: Data, table: EntityTable, row: Vehicle |
     if (active.some(o => next.license_valid_until < scheduledDay(o.scheduled_at))) throw new Error('Die Führerscheingültigkeit muss alle offenen Aufträge abdecken.');
     return { ...data, drivers: data.drivers.map(d => d.id === row.id ? { ...next, revision } : d), events: [...data.events, ...active.map(o => event(data, o.vehicle_id, o.id, `Fahrerdaten aktualisiert: ${next.name} · ${o.reference}`))] };
   }
-  const previous = old as Order, next = row as Order;
+  const previous = old as Order, next = normalizeOrderRoute(data,row as Order,previous);
   if (!isActiveOrder(previous)) throw new Error('Abgeschlossene und stornierte Aufträge können nicht bearbeitet werden.');
   if (next.status !== previous.status || next.reference !== previous.reference) throw new Error('Auftragsstatus und Referenz können hier nicht verändert werden.');
   if (previous.status === 'in_transit' && (next.vehicle_id !== previous.vehicle_id || next.pickup !== previous.pickup)) throw new Error('Nach der Übernahme bleiben Fahrzeug und Abholort unverändert.');

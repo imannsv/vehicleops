@@ -6,7 +6,7 @@ import {coverImage,vehicleImages} from '../src/lib/vehicle-images';
 import {vehicleTitle,vehicleIdentity} from '../src/lib/company';
 import {Handover,shots} from '../src/lib/domain';
 function fixture(){const data=upgradeDemo(seed()),v={...data.vehicles[0],plate:null,generation:'8V',inventory_kind:'owned' as const,inventory_status:'stock' as const};data.vehicles[0]=v;return {data,v};}
-function signed(){const {data,v}=fixture(),d=initialProtocol(data,v,null,'delivery');d.photos=shots.map(slot=>({slot,url:'data:image/jpeg;base64,test'}));d.parties={giver:{name:'Dealer',role:'Employee',signature:'data:image/png;base64,giver'},receiver:{name:'Buyer',role:'Customer',signature:'data:image/png;base64,receiver'},exception_confirmed:false,exception_reason:''};d.position.confirmed=true;d.stock_confirmed=true;return{data,v,d};}
+function signed(){const {data,v}=fixture(),d=initialProtocol(data,v,null,'delivery');d.fuel=60;d.photos=shots.map(slot=>({slot,url:'data:image/jpeg;base64,test'}));d.parties={giver:{name:'Dealer',role:'Employee',signature:'data:image/png;base64,giver'},receiver:{name:'Buyer',role:'Customer',signature:'data:image/png;base64,receiver'},exception_confirmed:false,exception_reason:''};d.position.confirmed=true;d.stock_confirmed=true;return{data,v,d};}
 describe('Gemeinsame Fahrzeugakte',()=>{
  it('identifiziert Fahrzeuge ohne Kennzeichen über Modell und Bestandsnummer',()=>{const{v}=fixture();expect(vehicleIdentity(v)).toBe(v.stock_number);expect(vehicleTitle(v)).toBe('Volkswagen Golf Variant 8V');});
  it('akzeptiert mehrere Fahrzeuge ohne Kennzeichen bei verschiedenen VINs',()=>{const{data,v}=fixture();data.vehicles[1]={...data.vehicles[1],plate:null};expect(()=>applyEntityUpdate(data,'vehicles',v,1)).not.toThrow();});
