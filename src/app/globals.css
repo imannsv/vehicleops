@@ -203,3 +203,37 @@ input:read-only { background:#f4f6f9; color:#71839a; }
 }
 
 .route-fields{display:grid;align-content:start;gap:12px}.order-route-summary{margin:16px 0}.order-route-summary dd small{display:block;color:var(--muted);font-size:13px;line-height:1.6}.driver-work{margin-bottom:24px}.driver-work .detail-actions{flex-wrap:wrap}.driver-work h3{font-size:21px}
+.damage-editor-layout { display:grid; grid-template-columns:minmax(180px,260px) minmax(0,1fr); gap:24px; align-items:start; }
+.damage-diagram-wrap { min-width:0; }
+.damage-orientation { text-align:center; margin-bottom:12px; }
+.damage-diagram { position:relative; width:min(100%,220px); aspect-ratio:11/21; margin:auto; }
+.damage-diagram .walkaround-car { position:absolute; inset:0; width:100%; height:100%; }
+.damage-map-target { position:absolute; inset:0; background:transparent; border:0; width:100%; cursor:crosshair; border-radius:16px; }
+.damage-map-target:focus-visible { outline:3px solid var(--blue); }
+.damage-pin { position:absolute; transform:translate(-50%,-50%); border:2px solid white; border-radius:50%; min-width:34px; height:34px; padding:0 4px; font-size:11px; font-weight:700; box-shadow:0 2px 5px #102a4340; cursor:pointer; color:white; }
+.damage-pin.known,.damage-map-legend i.known { background:#51677e; }
+.damage-pin.fresh,.damage-map-legend i.fresh { background:#c65319; }
+.damage-map-legend { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin:15px 0; font-size:12px; }
+.damage-map-legend span { display:flex; align-items:center; gap:6px; }
+.damage-map-legend i { display:inline-block; width:10px; height:10px; border-radius:50%; }
+.damage-zone-buttons { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin-top:12px; }
+.damage-zone-buttons button { font-size:11px; padding:8px 5px; justify-content:center; min-height:40px; }
+.damage-cards { display:grid; gap:10px; }
+.damage-card { min-width:0; border:1px solid #dce4ee; border-radius:10px; padding:14px; background:white; }
+.damage-card summary { cursor:pointer; display:flex; flex-wrap:wrap; gap:7px 12px; align-items:center; min-height:32px; }
+.damage-card summary::before { content:'›'; font-size:20px; color:#73879c; }
+.damage-card[open] summary::before { transform:rotate(90deg); }
+.damage-card summary strong { flex:1; min-width:100px; overflow-wrap:anywhere; }
+.damage-number { color:#566d84; font-size:12px; }
+.damage-card p { margin:12px 0; overflow-wrap:anywhere; }
+.damage-edit-card { margin-bottom:12px; }
+.damage-edit-card label { margin-top:12px; }
+.damage-photo-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:12px 0; }
+.damage-photo-grid a,.damage-photo-grid figure { min-width:0; position:relative; margin:0; border-radius:7px; overflow:hidden; background:#f0f4f8; }
+.damage-photo-grid img { width:100%; height:110px; object-fit:contain; }
+.damage-photo-grid .icon-button { position:absolute; right:3px; top:3px; background:white; }
+.damage-image-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+.damage-file-picker { position:relative; display:inline-flex; align-items:center; gap:6px; cursor:pointer; margin:0!important; overflow:hidden; }
+.damage-file-picker input { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+.damage-file-picker:focus-within { outline:3px solid #89a8f6; outline-offset:2px; }
+@media(max-width:650px) { .damage-editor-layout { grid-template-columns:1fr; gap:20px; } .damage-zone-buttons { max-width:360px; margin:12px auto; } .damage-photo-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .damage-pin { min-width:40px; height:40px; } }

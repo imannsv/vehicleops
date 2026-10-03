@@ -15,7 +15,7 @@ const positions: Record<string, string> = {
   'Hinten': 'rear',
 };
 
-function VehicleIllustration() {
+export function VehicleIllustration() {
   return (
     <svg viewBox="0 0 220 420" role="img" aria-label="Auto aus der Vogelperspektive, Fahrzeugfront oben" className="walkaround-car">
       <defs>

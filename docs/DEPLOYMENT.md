@@ -109,3 +109,13 @@ Die siebzehnte additive Migration `fleet_archive` ist vor dem App-Deployment im 
 Cloud-Metadaten bestätigen RLS, unveränderte lesende Tabellenrechte, den öffentlichen Aufruf ohne erhöhte Rechte, leere private Suchpfade und gesperrte anonyme Aufrufe. Triggerfunktionen sind für App-Mitglieder nicht direkt ausführbar. Keine neuen Datenbank-Sicherheitsbefunde oder Performance-Warnungen; bisheriger Auth-Hinweis und ungenutzte Indizes bleiben dokumentiert.
 
 81 Fachlogiktests, 70 Desktop-/Mobilprüfungen, echte lokale Archiv-/Stellplatzbrowser, Rollen/Konkurrenz/Rollback sowie alle 17 Migrationen mit Altbeständen bestehen. Veröffentlichung erfolgt über den vorhandenen GitHub-/Vercel-Ablauf; die öffentliche Abschlussprüfung ist lesend. [Bedienung](INVENTORY.md) · [Prüfungen](VALIDATION.md).
+
+## Fahrzeugdiagramm und Schadenfotos – 3. Oktober 2026
+
+Die achtzehnte additive Migration `damage_diagram_and_photos` ist vor dem App-Deployment im ausgewählten Projekt `nfocyuyuloyjaikkflai` angewendet. Lokale Datei: `20261003064938_damage_diagram_and_photos.sql`; Cloud-Version: `20261003070024`. Die unterschiedlichen Versionsnummern bleiben dokumentiert; bereits angewendete Inhalte nicht ungeprüft nochmals über CLI-Push übertragen.
+
+Die Migration ergänzt optionale Markierungen und eine separate Detailfototabelle. Der bisherige öffentliche Abschlussaufruf bleibt kompatibel. Sein interner Abschluss prüft Schadenfelder, Upload-Eigentümer, Sitzung und Medienpfade und speichert Schäden/Fotoreferenzen atomar mit dem Protokoll. Neue Kopien frieren bekannte und neue Schäden inklusive Fotoreferenzen ein. Bestehende Protokolle werden nicht umgeschrieben. Der private Storage-Bereich wird weiterverwendet; referenzierte Schadenbilder sind gegen Entfernen durch Mitglieder geschützt. Keine neuen Umgebungsvariablen.
+
+RLS, zusammengesetzte Fremdschlüssel, nur lesende Tabellenrechte und die unveränderten privaten/public Abschlussrechte sind in der Cloud bestätigt. Hilfsfunktionen haben keine erhöhten Rechte. Keine neuen Sicherheits- oder Performance-Warnungen; bisheriger Auth-Hinweis und ungenutzte Indizes bleiben dokumentiert.
+
+89 Fachlogiktests, 74 Desktop-/Mobilprüfungen, echte lokale Schaden-/Foto-/PDF-Browser einschließlich verlorener Antwort und Wiederholung sowie alle 18 Migrationen mit Altbeständen bestehen. Veröffentlichung erfolgt über GitHub/Vercel; die öffentliche Smoke-Prüfung legt keine Geschäftsdaten an. [Bedienung](DAMAGES.md) · [Prüfung](VALIDATION.md).

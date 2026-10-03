@@ -35,7 +35,7 @@ Ein lesender mobile.de-Adapter ist vorbereitet und mit kontrollierten Antworten 
 
 ## 2. Operativer Alltag
 - Abbruchablauf für bereits laufende Transporte ergänzen; Umplanung, Fahrerwechsel und Storno vor Übernahme sind umgesetzt.
-- Detaillierte Schadenfotos, Fahrzeugdiagramm und Zubehör-Checkliste; Schlüssel sind umgesetzt.
+- Detaillierte Schadenfotos und Fahrzeugdiagramm mit getrennten bekannten/neuen Schäden sind umgesetzt, ausdrücklich ohne Schadenstatus. [Bedienung und Rechte](DAMAGES.md). Zubehör-Checkliste folgt; Schlüssel sind umgesetzt.
 - Separate Unterschriften und begründete Ausnahme sind umgesetzt. Weiterführend: dokumentierte Annahmeverweigerung mit separatem Vorgangsstatus.
 - Status „Neu“ und „Fahrer unterwegs“, Benachrichtigungen, CSV-Import.
 - Versionierte PDF-Vorlage ist umgesetzt; persistente PDF-Dateien und dokumentierte Aufbewahrung folgen.

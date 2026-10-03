@@ -26,8 +26,12 @@ export interface KeySnapshot { recorded: boolean; selected: { id: string; label:
 export interface Driver { id: string; organization_id: string; name: string; email: string; phone: string; license_valid_until: string; user_id: string | null; revision?: number }
 export interface Order { id: string; organization_id: string; reference: string; vehicle_id: string; driver_id: string; pickup: string; destination: string; pickup_site_id?:string|null; destination_site_id?:string|null; destination_space_id?:string|null; pickup_address?:string; destination_address?:string; scheduled_at: string; contact: string; transport_plate?:string|null; status: Status; revision?: number; cancellation_reason?: string | null; cancelled_at?: string | null }
 export interface Photo {id?:string;bucket?:string; slot: string; url: string; path?: string }
-export interface Damage { id: string; organization_id: string; vehicle_id: string; handover_id: string; area: string; description: string; created_at: string }
-export interface ProtocolSnapshot { organization_name:string; organization?:Organization; known_damages?:{id:string;area:string;description:string}[]; vehicle:Vehicle; driver:Driver|null; order:Order|null }
+export interface DamageMarker { x:number; y:number }
+export interface DamagePhoto { id:string; url:string; path?:string; bucket?:string }
+export interface DamageDraft { id?:string; area:string; description:string; marker?:DamageMarker|null; photos?:DamagePhoto[] }
+export interface RecordedDamage extends DamageDraft { id:string }
+export interface Damage extends RecordedDamage { organization_id:string; vehicle_id:string; handover_id:string; created_at:string }
+export interface ProtocolSnapshot { organization_name:string; organization?:Organization; known_damages?:RecordedDamage[]; new_damages?:RecordedDamage[]; vehicle:Vehicle; driver:Driver|null; order:Order|null }
 export type Purpose='transport'|'purchase'|'sale'|'rental'|'return'|'other';
 export interface Party {name:string;role:string;signature:string;signature_url?:string}
 export interface Parties {giver:Party;receiver:Party;exception_confirmed:boolean;exception_reason:string}
@@ -36,7 +40,7 @@ export interface ProtocolDraft extends Draft {id:string;purpose:Purpose;parties:
 export interface Handover { id: string; organization_id: string; order_id: string|null; vehicle_id?:string; version?:number;request_hash?:string; purpose?:Purpose; parties?:Parties; position?:Position; transport_plate?:string|null; signature_bucket?:string; kind: Kind; mileage: number; fuel: number; signer: string; signature: string; notes: string; created_at: string; photos: Photo[]; snapshot?: ProtocolSnapshot; key_snapshot?: KeySnapshot | null }
 export interface Event { id: string; organization_id: string; vehicle_id: string; order_id: string | null; description: string; created_at: string }
 export interface Data { organization: Organization; members: Member[]; vehicles: Vehicle[]; drivers: Driver[]; orders: Order[]; handovers: Handover[]; damages: Damage[]; events: Event[]; invitations: Invitation[]; holders?: VehicleHolder[]; assets?: VehicleAsset[]; keys?: VehicleKey[]; key_movements?: KeyMovement[]; sites?: FleetSite[]; spaces?: ParkingSpace[]; stock_events?:StockEvent[]; movements?: VehicleMovement[];external_listings?:ExternalListing[];import_runs?:ImportRun[] }
-export interface Draft { mileage: number; fuel: number; signer: string; signature: string; notes: string; photos: Photo[]; damages: { area: string; description: string }[]; keys?: KeyChecklist }
+export interface Draft { mileage: number; fuel: number; signer: string; signature: string; notes: string; photos: Photo[]; damages: DamageDraft[]; keys?: KeyChecklist }
 export function isActiveOrder(order: Order) { return order.status === 'assigned' || order.status === 'in_transit'; }
 export function protocolSnapshot(data: Data, order: Order): ProtocolSnapshot {
   const vehicle = data.vehicles.find(v => v.id === order.vehicle_id)!;

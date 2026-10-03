@@ -32,6 +32,7 @@ Die App enthält ein Manifest, PNG-Icons und einen Service Worker mit verständl
 
 - Dashboard mit offenen Aufträgen, Transportstatus und Aktivitäten.
 - Bestandsübersicht mit kombinierten Standort-, Stellplatz-, Verfügbarkeits- und Transportfiltern. Neue Standorte direkt mit mehreren Stellplätzen einrichten; Nummernreihen, eigene Listen, Vorschau/Dublettenprüfung und Stellplatzsuche. Standorte/Plätze archivieren und wiederherstellen, mit Schutz bei Belegung und offenen Aufträgen. Fahrzeuge mit optionaler Begründung umsetzen und unveränderliche Bewegungen ansehen. Siehe [Bestandsverwaltung](docs/INVENTORY.md).
+- Schäden im Protokoll am Fahrzeugdiagramm markieren und mit mehreren privaten Detailfotos dokumentieren. Bekannte/neue Schäden, Entwürfe, Fahrzeugakte und eingefrorener PDF-Anhang; ohne Schadenstatus. Siehe [Schadendokumentation](docs/DAMAGES.md).
 - Unternehmensprofil mit Logo, Rechtsform, Geschäftsführung, Kontakt, Anschrift und Steuer-/Registerangaben. Getrennte Bereiche Unternehmen und Team; Startbereich nach Unternehmensart.
 - Gemeinsame Fahrzeugakte ohne Pflichtkennzeichen, mit automatischer Bestandsnummer, eindeutiger VIN, eigener Baureihe und getrenntem Bestands-/Transportstatus.
 - Eigenständige Protokolle für Ankauf, Verkauf, Vermietung und Rücknahme, bestätigte Position und Bestandsänderungen mit Historie.
@@ -120,6 +121,7 @@ node tests/records.integration.mjs
 node tests/inventory.integration.mjs
 node tests/parking.integration.mjs
 node tests/fleet-archive.integration.mjs
+node tests/damages.integration.mjs
 node tests/mobile-import.integration.mjs
 Get-Content -Raw tests/database.sql | docker exec -i supabase_db_vehicleops psql -U postgres -d postgres -v ON_ERROR_STOP=1
 npx supabase db advisors --local --type all --level warn --fail-on error

@@ -23,15 +23,40 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "damages": {
+            "damage_photos": {
                   Row: {
-                    "area": string,"created_at": string,"description": string,"handover_id": string,"id": string,"organization_id": string,"vehicle_id": string
+                    "bucket": string,"damage_id": string,"id": string,"organization_id": string,"path": string,"sequence": number
                   }
                   Insert: {
-                    "area": string,"created_at"?: string,"description": string,"handover_id": string,"id"?: string,"organization_id": string,"vehicle_id": string
+                    "bucket"?: string,"damage_id": string,"id"?: string,"organization_id": string,"path": string,"sequence": number
                   }
                   Update: {
-                    "area"?: string,"created_at"?: string,"description"?: string,"handover_id"?: string,"id"?: string,"organization_id"?: string,"vehicle_id"?: string
+                    "bucket"?: string,"damage_id"?: string,"id"?: string,"organization_id"?: string,"path"?: string,"sequence"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "damage_photos_damage_fkey"
+      columns: ["organization_id","damage_id"]
+isOneToOne: false
+      referencedRelation: "damages"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "damage_photos_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organizations"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"damages": {
+                  Row: {
+                    "area": string,"created_at": string,"description": string,"handover_id": string,"id": string,"marker": Json | null,"organization_id": string,"vehicle_id": string
+                  }
+                  Insert: {
+                    "area": string,"created_at"?: string,"description": string,"handover_id": string,"id"?: string,"marker"?: Json | null,"organization_id": string,"vehicle_id": string
+                  }
+                  Update: {
+                    "area"?: string,"created_at"?: string,"description"?: string,"handover_id"?: string,"id"?: string,"marker"?: Json | null,"organization_id"?: string,"vehicle_id"?: string
                   }
                   Relationships: [
                     {
